@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
     LayoutDashboard, ShoppingBag, LogOut, CheckCircle2, 
@@ -10,15 +11,13 @@ import {
 } from 'lucide-react';
 import { SaasProduct } from '../types';
 import { db } from '../services/firebase';
-import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore/lite";
+import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { SAAS_PRODUCTS } from '../constants';
 import { PaymentGateway } from './PaymentGateway';
 
 const IconMap: Record<string, React.ElementType> = {
     Bot, FileText, Workflow, Database
 };
-
-const CLOUD_RUN_URL = "https://service-128brand-ai-chatbot-saas-785237534052.us-west1.run.app";
 
 // [NUEVO] Conexión con el Backend SaaS
 const SAAS_API_URL = "https://us-central1-brand-ai-chatbot-saas.cloudfunctions.net/activateClientToken";
@@ -116,17 +115,17 @@ const OfferPage: React.FC<OfferPageProps> = ({ product, onActivateTrial, onClose
                                 Oferta Exclusiva 128 Brand
                             </div>
                             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-                                Agente Comercial <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-accent to-purple-500">24/7.</span>
+                                {product.name}
                             </h1>
                             <p className="text-xl text-gray-400 mb-8 leading-relaxed">
-                                No compres solo un chatbot. Contrata al empleado perfecto: aprende de cada cliente, cualifica leads y cierra ventas automáticamente en tu web mientras duermes.
+                                {product.description}
                             </p>
                             
                             <div className="flex items-center gap-6 mb-10">
                                 <div className="flex flex-col">
                                     <div className="flex items-center gap-2 mb-1">
                                          <span className="text-gray-400 text-sm font-medium">Precio habitual:</span>
-                                         <span className="text-white font-bold text-lg">€350/mes</span>
+                                         <span className="text-white font-bold text-lg">{product.price}</span>
                                     </div>
                                     <span className="text-4xl font-bold text-white">€0<span className="text-sm text-gray-400 font-normal"> / 7 días</span></span>
                                 </div>
@@ -159,7 +158,7 @@ const OfferPage: React.FC<OfferPageProps> = ({ product, onActivateTrial, onClose
                                         <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                                         <div className="w-3 h-3 rounded-full bg-green-500"></div>
                                     </div>
-                                    <div className="font-mono text-xs text-gray-500">Agente_Comercial_v1.0</div>
+                                    <div className="font-mono text-xs text-gray-500">{product.id}_v1.0</div>
                                 </div>
                                 <div className="space-y-4">
                                     <div className="flex gap-4">
@@ -171,18 +170,18 @@ const OfferPage: React.FC<OfferPageProps> = ({ product, onActivateTrial, onClose
                                     </div>
                                     <div className="p-4 bg-black/40 rounded-xl border border-white/5">
                                         <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs text-gray-400 uppercase">Ventas Hoy</span>
-                                            <span className="text-green-400 font-bold text-xs">+15%</span>
+                                            <span className="text-xs text-gray-400 uppercase">Eficiencia Hoy</span>
+                                            <span className="text-green-400 font-bold text-xs">+25%</span>
                                         </div>
-                                        <div className="text-3xl font-bold text-white">42</div>
+                                        <div className="text-3xl font-bold text-white">Active</div>
                                     </div>
                                     <div className="p-4 bg-brand-accent/10 rounded-xl border border-brand-accent/20">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm font-bold text-white">Tasa Conversión</span>
+                                            <span className="text-sm font-bold text-white">Automatización</span>
                                             <Activity className="w-4 h-4 text-brand-accent"/>
                                         </div>
                                         <div className="h-1 w-full bg-gray-800 rounded-full mt-3 overflow-hidden">
-                                            <div className="h-full bg-brand-accent w-[65%]"></div>
+                                            <div className="h-full bg-brand-accent w-[85%]"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -212,9 +211,11 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
     // Status Logic
     const isActive = product.status === 'active';
     
-    // Use the token from the product
+    // Use the token from the product and dynamic service URL
     const token = product.token || `missing_token`;
-    const targetUrl = `${CLOUD_RUN_URL}?token=${token}`;
+    const targetUrl = product.serviceUrl 
+        ? `${product.serviceUrl}?token=${token}` 
+        : `https://service-128brand-ai-chatbot-saas-785237534052.us-west1.run.app?token=${token}`; // Fallback
 
     const handleOpenPlatform = () => {
         window.open(targetUrl, '_blank');
@@ -243,7 +244,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
                 <div className="max-w-xl space-y-4">
                     <h3 className="text-3xl font-bold text-white">Gestión Centralizada</h3>
                     <p className="text-gray-400 text-lg leading-relaxed">
-                        Toda la configuración de tu <strong>Agente Comercial</strong> se realiza en nuestra plataforma dedicada. Este Dashboard actúa como tu <strong>Centro de Licencias</strong>.
+                        Toda la configuración de tu <strong>{product.name}</strong> se realiza en nuestra plataforma dedicada. Este Dashboard actúa como tu <strong>Centro de Licencias</strong>.
                     </p>
                 </div>
 
@@ -418,7 +419,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             try {
                 if (isAdminDemo || isClientDemo) return;
                 // Just check connection by fetching a collection (empty or not)
-                // Modular SDK call
+                // Standard SDK call
                 await getDocs(collection(db, 'products')); 
                 setIsOffline(false);
             } catch (error: any) {
@@ -437,7 +438,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             // ADMIN LOGIC: Redirect directly to external platform
             if (isAdminDemo) {
                 const token = ownedProduct.token || 'admin_token';
-                window.open(`${CLOUD_RUN_URL}?token=${token}`, '_blank');
+                const url = ownedProduct.serviceUrl || "https://service-128brand-ai-chatbot-saas-785237534052.us-west1.run.app";
+                window.open(`${url}?token=${token}`, '_blank');
                 return;
             }
 
@@ -508,7 +510,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     
             // Guardamos copia en la Agencia (Backup)
             try {
-                // Modular SDK setDoc
+                // Standard SDK setDoc
                 await setDoc(doc(db, "licenses", mockToken), {
                     userId: userId,
                     productId: selectedProduct.id,
@@ -545,14 +547,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         console.log("💳 Payment Confirmed. Upgrading service...");
 
         // 1. Update Local State (Remove Trial Limits)
-        // We use a property 'isPremium' implicitly if trialEndsAt is null or we can add a property.
-        // For existing types, we'll set trialEndsAt to far future or handle logic in component.
-        // Let's rely on updating the local object.
         const upgradedService = {
             ...selectedProduct,
             trialEndsAt: undefined, // Removes the trial limit
             status: 'active',
-            // We can add a custom 'plan' property if we extended the type, but standard logic uses trialEndsAt presence
         } as SaasProduct;
 
         const updatedServices = myServices.map(s => 
@@ -567,7 +565,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             try {
                 await updateDoc(doc(db, "licenses", selectedProduct.token), {
                     plan: 'premium_monthly',
-                    trialEndsAt: null, // Firestore null removes the field logic usually
+                    trialEndsAt: null, 
                     updatedAt: new Date(),
                     paymentStatus: 'paid'
                 });
@@ -593,7 +591,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
         // --- FIRESTORE UPDATE LOGIC ---
         try {
-            // Modular SDK updateDoc
+            // Standard SDK updateDoc
             await updateDoc(doc(db, "licenses", selectedProduct.token), {
                 status: status
             });
@@ -612,7 +610,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
         // 2. Remove from Firestore
         try {
-             // Modular SDK deleteDoc
+             // Standard SDK deleteDoc
              await deleteDoc(doc(db, "licenses", selectedProduct.token));
         } catch (e) {
             console.error("Error deleting license from DB", e);
@@ -725,7 +723,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                     <h3 className="text-3xl font-bold text-white mt-2">
                                         {myServices.some(s => !s.trialEndsAt) ? '€350' : '€0'}
                                         <span className="text-xs text-gray-500 font-normal"> 
-                                            {myServices.some(s => !s.trialEndsAt) ? ' (Premium Activo)' : ' (Periodo Prueba)'}
+                                            {myServices.some(s => !s.trialEndsAt) ? ' + IVA (Premium Activo)' : ' (Periodo Prueba)'}
                                         </span>
                                     </h3>
                                 </div>
@@ -797,7 +795,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                                         <span className="text-xs text-brand-neon font-bold ml-2">7 días GRATIS</span>
                                                     </div>
                                                     <div className="text-xs text-gray-400 font-medium">
-                                                        Luego <span className="text-white font-bold">€350/mes</span>
+                                                        Luego <span className="text-white font-bold">{product.price}</span>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-2 pt-2">

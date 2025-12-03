@@ -9,9 +9,10 @@ interface NavbarProps {
   isLoggedIn?: boolean;
   onNavigateToDashboard?: () => void;
   onNavigateToAuth: (isRegister: boolean) => void;
+  onOpenChat: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, isLoggedIn, onNavigateToDashboard, onNavigateToAuth }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, isLoggedIn, onNavigateToDashboard, onNavigateToAuth, onOpenChat }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -22,6 +23,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, isLoggedIn
   }, []);
 
   const handleNavClick = (view: ViewState, id?: string) => {
+    if (view === ViewState.AI_DEMO) {
+        onOpenChat();
+        setIsMobileOpen(false);
+        return;
+    }
+
     setView(view);
     setIsMobileOpen(false);
     
@@ -76,14 +83,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, isLoggedIn
                         onClick={() => onNavigateToAuth(true)}
                         className="relative inline-flex items-center justify-center px-6 py-2 font-bold text-black transition-all duration-200 bg-white border border-white font-pj rounded-full hover:bg-gray-200"
                     >
-                        Registrarse
-                        <span className="absolute -top-3 -right-2 px-2 py-0.5 bg-brand-neon text-black text-[9px] font-black uppercase tracking-wide rounded-full transform rotate-6 border border-black shadow-lg animate-pulse">
-                            7 Días Gratis
-                        </span>
+                        Registrarse Gratis
                     </button>
 
                     <button
-                        onClick={() => handleNavClick(ViewState.AI_DEMO)}
+                        onClick={() => onOpenChat()}
                         className="group relative inline-flex items-center justify-center px-5 py-2 font-bold text-white transition-all duration-200 bg-brand-accent font-pj rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-accent hover:bg-brand-accent/90"
                     >
                         <Zap className="w-4 h-4 mr-2 fill-current" />
@@ -118,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, isLoggedIn
                 className="mt-4 w-full flex items-center justify-center px-4 py-3 bg-white text-black rounded-lg font-bold relative overflow-hidden"
             >
                 <div className="absolute top-0 right-0 w-4 h-4 bg-brand-neon rounded-bl-lg"></div>
-                <UserPlus className="w-4 h-4 mr-2" /> Registrarse (Prueba Gratis)
+                <UserPlus className="w-4 h-4 mr-2" /> Registrarse Gratis
             </button>
 
             <button 

@@ -1,12 +1,14 @@
+
 import React from 'react';
 import { ArrowRight, Bot, Sparkles, Cpu, Play } from 'lucide-react';
 import { ViewState } from '../types';
 
 interface HeroProps {
   setView: (view: ViewState) => void;
+  onOpenChat: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ setView }) => {
+export const Hero: React.FC<HeroProps> = ({ setView, onOpenChat }) => {
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
       
@@ -57,7 +59,7 @@ export const Hero: React.FC<HeroProps> = ({ setView }) => {
               </button>
 
               <button 
-                onClick={() => setView(ViewState.AI_DEMO)}
+                onClick={onOpenChat}
                 className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white transition-all duration-300 bg-brand-accent rounded-xl hover:bg-brand-accent/90 backdrop-blur-sm hover:scale-105"
               >
                 <Bot className="w-5 h-5 mr-2" />

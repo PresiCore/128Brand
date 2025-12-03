@@ -5,13 +5,16 @@ export enum ViewState {
   AI_DEMO = 'AI_DEMO',
   CONTACT = 'CONTACT',
   LOGIN = 'LOGIN',
-  DASHBOARD = 'DASHBOARD'
+  DASHBOARD = 'DASHBOARD',
+  PRIVACY = 'PRIVACY',
+  TERMS = 'TERMS'
 }
 
 export interface Message {
   role: 'user' | 'model';
   text: string;
   timestamp: Date;
+  productRecommendation?: string; // ID of the recommended product
 }
 
 export interface ServiceItem {
@@ -37,6 +40,7 @@ export interface SaasProduct {
   demoId?: 'sdr' | 'invoice' | 'social' | 'legal'; // ID for the interactive component
   token?: string; // New: License Token
   trialEndsAt?: string; // New: Expiration date for trial
+  serviceUrl?: string; // New: External service URL
 }
 
 export interface UserProfile {

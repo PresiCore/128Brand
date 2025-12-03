@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Bot, FileText, Workflow, Database, PlayCircle, Check, Timer } from 'lucide-react';
 import { SAAS_PRODUCTS } from '../constants';
@@ -12,29 +13,29 @@ const IconMap: Record<string, React.ElementType> = {
 
 export const Services: React.FC = () => {
   return (
-    <div className="py-32 bg-[#030014] relative z-10">
+    <div className="py-32 bg-[#030014] relative z-10" id="services">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="mb-16 text-center">
           <h2 className="reveal-on-scroll text-brand-accent font-bold tracking-wide uppercase text-sm mb-2">Marketplace de IA</h2>
           <h3 className="reveal-on-scroll delay-100 text-4xl md:text-5xl font-bold text-white leading-tight">
-            Nuestra Solución Estrella
+            Nuestras Soluciones Estrella
           </h3>
           <p className="reveal-on-scroll delay-200 mt-4 text-gray-400 max-w-2xl mx-auto">
-            Hemos condensado todo nuestro conocimiento en un único producto capaz de transformar tu empresa.
+            Hemos condensado todo nuestro conocimiento en productos capaces de transformar tu empresa.
           </p>
         </div>
 
-        {/* Product Grid - Centered for single item */}
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 max-w-lg mx-auto">
+        {/* Product Grid - Updated to Flex to center single item */}
+        <div className="flex flex-wrap justify-center gap-8 max-w-5xl mx-auto">
             {SAAS_PRODUCTS.map((product, index) => {
                 const Icon = IconMap[product.iconName] || Bot;
-                const isPopular = true; 
+                const isPopular = index === 0; 
 
                 return (
                     <div 
                         key={product.id} 
-                        className={`reveal-on-scroll group relative flex flex-col rounded-3xl p-8 transition-all duration-500 hover:-translate-y-2 overflow-hidden ${
+                        className={`reveal-on-scroll group relative flex flex-col rounded-3xl p-8 transition-all duration-500 hover:-translate-y-2 overflow-hidden w-full md:max-w-[480px] ${
                             isPopular 
                                 ? 'bg-[#0f0c29] border border-brand-accent shadow-[0_0_50px_rgba(124,58,237,0.3)]' 
                                 : 'bg-[#0a0a0a] border border-white/5 hover:border-white/20'
@@ -45,7 +46,7 @@ export const Services: React.FC = () => {
                             <div className="absolute top-0 right-0 z-20">
                                 <div className="bg-brand-neon text-black text-xs font-black px-4 py-1 rounded-bl-xl shadow-lg flex items-center gap-1">
                                     <Timer className="w-3 h-3" />
-                                    PRUEBA GRATIS ACTIVA
+                                    MÁS POPULAR
                                 </div>
                             </div>
                         )}
@@ -59,8 +60,8 @@ export const Services: React.FC = () => {
 
                         <div className="mb-6 text-center">
                             <h4 className="text-2xl font-bold text-white mb-3">{product.name}</h4>
-                            <p className="text-base text-gray-400 leading-relaxed">
-                                {product.description}
+                            <p className="text-base text-gray-400 leading-relaxed min-h-[80px]">
+                                {product.description.substring(0, 150)}...
                             </p>
                         </div>
 
@@ -73,7 +74,7 @@ export const Services: React.FC = () => {
                                     </div>
                                     <div className="flex items-center gap-2 mt-3 px-3 py-1.5 rounded-lg bg-black/40 border border-white/10">
                                         <span className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Renovación:</span>
-                                        <span className="text-sm text-white font-bold">€350/mes</span>
+                                        <span className="text-sm text-white font-bold">{product.price}</span>
                                     </div>
                                 </div>
                             </div>
@@ -81,15 +82,15 @@ export const Services: React.FC = () => {
                             <ul className="space-y-4 mb-8 bg-black/20 p-6 rounded-xl border border-white/5">
                                 <li className="flex items-center text-sm text-gray-300">
                                     <Check className="w-4 h-4 text-brand-neon mr-3 flex-shrink-0" />
-                                    <span>Aprendizaje Continuo (IA Avanzada)</span>
+                                    <span>Instalación Instantánea</span>
                                 </li>
                                 <li className="flex items-center text-sm text-gray-300">
                                     <Check className="w-4 h-4 text-brand-neon mr-3 flex-shrink-0" />
-                                    <span>Lead Scoring & CRM Integrado</span>
+                                    <span>Soporte Prioritario</span>
                                 </li>
                                 <li className="flex items-center text-sm text-gray-300">
                                     <Check className="w-4 h-4 text-brand-neon mr-3 flex-shrink-0" />
-                                    <span>Personalización Total de Branding</span>
+                                    <span>Cancelación en 1 Click</span>
                                 </li>
                             </ul>
 

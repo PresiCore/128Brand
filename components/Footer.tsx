@@ -1,7 +1,13 @@
-import React from 'react';
-import { Instagram, Twitter, Linkedin, MapPin, Mail } from 'lucide-react';
 
-export const Footer: React.FC = () => {
+import React from 'react';
+import { MapPin, Mail, ArrowRight, ShieldCheck, FileText } from 'lucide-react';
+import { ViewState } from '../types';
+
+interface FooterProps {
+  onNavigate: (view: ViewState) => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   return (
     <footer className="bg-zinc-950 border-t border-white/10 pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,14 +41,29 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Social */}
+          {/* Legal */}
           <div>
-            <h3 className="text-white font-bold uppercase tracking-wider text-sm mb-4">Síguenos</h3>
-            <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors"><Twitter className="w-6 h-6" /></a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors"><Instagram className="w-6 h-6" /></a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors"><Linkedin className="w-6 h-6" /></a>
-            </div>
+            <h3 className="text-white font-bold uppercase tracking-wider text-sm mb-4">Legal</h3>
+            <ul className="space-y-3">
+              <li>
+                <button 
+                  onClick={() => onNavigate(ViewState.PRIVACY)}
+                  className="group flex items-center text-gray-400 hover:text-white transition-colors text-sm text-left"
+                >
+                  <ShieldCheck className="w-4 h-4 mr-2 group-hover:text-brand-accent transition-colors" />
+                  Política de Privacidad
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => onNavigate(ViewState.TERMS)}
+                  className="group flex items-center text-gray-400 hover:text-white transition-colors text-sm text-left"
+                >
+                  <FileText className="w-4 h-4 mr-2 group-hover:text-brand-accent transition-colors" />
+                  Términos y Condiciones
+                </button>
+              </li>
+            </ul>
           </div>
 
         </div>

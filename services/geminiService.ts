@@ -1,39 +1,60 @@
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+
+import { GoogleGenAI, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../constants";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export interface GeminiConfig {
-  systemInstruction?: string;
-  jsonMode?: boolean;
+export interface ChatResponse {
+    text: string;
+    productRecommendation?: string;
 }
 
 export const sendMessageToGemini = async (
   userMessage: string, 
-  history: { role: string; parts: { text: string }[] }[],
-  config?: GeminiConfig
-): Promise<string> => {
+  history: { role: string; parts: { text: string }[] }[]
+): Promise<ChatResponse> => {
   try {
-    // Updated to Gemini 3.0 as requested for complex reasoning
-    const modelId = 'gemini-3-pro-preview'; 
+    const modelId = 'gemini-2.5-flash'; // Using Flash for faster, snappy sales responses
     
     const chat = ai.chats.create({
       model: modelId,
       config: {
-        systemInstruction: config?.systemInstruction || SYSTEM_INSTRUCTION,
+        systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7,
-        responseMimeType: config?.jsonMode ? 'application/json' : 'text/plain',
+        responseMimeType: 'application/json',
+        responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+                response: { type: Type.STRING, description: "The conversational response to the user." },
+                recommendedProductId: { type: Type.STRING, description: "The ID of the product to recommend (e.g. 'ai-growth-bot'), or null if none.", nullable: true }
+            },
+            required: ["response"]
+        }
       },
       history: history, 
     });
 
-    const response: GenerateContentResponse = await chat.sendMessage({
+    const result = await chat.sendMessage({
       message: userMessage
     });
 
-    return response.text || "Lo siento, sin respuesta.";
+    const responseText = result.text;
+    
+    try {
+        if (!responseText) throw new Error("Empty response");
+        const data = JSON.parse(responseText);
+        return {
+            text: data.response,
+            productRecommendation: data.recommendedProductId
+        };
+    } catch (e) {
+        console.error("Error parsing JSON from Gemini:", e);
+        // Fallback for non-JSON text
+        return { text: responseText || "Lo siento, hubo un error de conexión.", productRecommendation: undefined };
+    }
+
   } catch (error) {
     console.error("Error calling Gemini API:", error);
-    return "Error de conexión con Gemini 3.0. Por favor, intenta más tarde.";
+    return { text: "Error de conexión. Por favor, intenta más tarde." };
   }
 };

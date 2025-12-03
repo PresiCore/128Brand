@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore/lite";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDaZpr6FyiBoy5jAuoO8J341yo6GGztdsU",
@@ -13,7 +13,6 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-// We use the modular syntax which is compatible with the imports in index.html
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);

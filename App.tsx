@@ -8,12 +8,14 @@ import { AiDemo } from './components/AiDemo';
 import { Footer } from './components/Footer';
 import { Dashboard } from './components/Dashboard';
 import { AuthPage } from './components/AuthPage';
-import { ViewState, UserProfile } from './types';
+import { Legal } from './components/Legal';
+import { ViewState } from './types';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
   const [user, setUser] = useState<any>(null);
   const [authInitialMode, setAuthInitialMode] = useState(false); // false = login, true = register
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Scroll to top when view changes
   useEffect(() => {
@@ -69,19 +71,19 @@ const App: React.FC = () => {
       return <Dashboard user={user} onLogout={handleLogout} />;
     }
 
-    if (currentView === ViewState.AI_DEMO) {
-      return <AiDemo />;
-    }
-
     if (currentView === ViewState.LOGIN) {
         return <AuthPage onLoginSuccess={handleLoginSuccess} initialMode={authInitialMode} />;
+    }
+
+    if (currentView === ViewState.PRIVACY || currentView === ViewState.TERMS) {
+        return <Legal view={currentView} onBack={() => setCurrentView(ViewState.HOME)} />;
     }
 
     // Landing Page Structure
     return (
       <>
         <div id="home">
-          <Hero setView={setCurrentView} />
+          <Hero setView={setCurrentView} onOpenChat={() => setIsChatOpen(true)} />
         </div>
         <div id="services">
           <Services />
@@ -98,21 +100,26 @@ const App: React.FC = () => {
       {/* Global Noise Overlay for Texture */}
       <div className="bg-noise"></div>
       
-      {currentView !== ViewState.DASHBOARD && (
+      {currentView !== ViewState.DASHBOARD && currentView !== ViewState.PRIVACY && currentView !== ViewState.TERMS && (
         <Navbar 
             currentView={currentView} 
             setView={setCurrentView} 
             isLoggedIn={!!user} 
             onNavigateToDashboard={() => setCurrentView(ViewState.DASHBOARD)} 
             onNavigateToAuth={handleNavigateToAuth}
+            onOpenChat={() => setIsChatOpen(true)}
         />
       )}
       
       <main className="relative">
         {renderContent()}
       </main>
+
+      {isChatOpen && <AiDemo onClose={() => setIsChatOpen(false)} />}
       
-      {currentView !== ViewState.DASHBOARD && currentView !== ViewState.LOGIN && <Footer />}
+      {currentView !== ViewState.DASHBOARD && currentView !== ViewState.LOGIN && currentView !== ViewState.PRIVACY && currentView !== ViewState.TERMS && (
+        <Footer onNavigate={setCurrentView} />
+      )}
     </div>
   );
 };

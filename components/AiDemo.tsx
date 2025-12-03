@@ -1,14 +1,19 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, RefreshCcw } from 'lucide-react';
+import { Send, Bot, Loader2, RefreshCcw, X, Sparkles, ArrowRight, CheckCircle2, Star } from 'lucide-react';
 import { Message } from '../types';
 import { sendMessageToGemini } from '../services/geminiService';
+import { SAAS_PRODUCTS } from '../constants';
 
-export const AiDemo: React.FC = () => {
+interface AiDemoProps {
+  onClose: () => void;
+}
+
+export const AiDemo: React.FC<AiDemoProps> = ({ onClose }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'model',
-      text: "Conexión establecida con la Base de Datos Central. Soy el Director de Inteligencia de Datos de 128 Brand. ¿Qué información sobre nuestros servicios o tarifas necesitas consultar hoy?",
+      text: "Hola. Soy Brandy, tu consultora de Inteligencia Artificial. ¿Te gustaría saber cómo automatizar tus ventas y ahorrar costes hoy mismo?",
       timestamp: new Date()
     }
   ]);
@@ -36,25 +41,26 @@ export const AiDemo: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Prepare history for Gemini (excluding the last user message which is sent as the prompt)
+      // Send history as pure text for the model context
       const history = messages.map(m => ({
         role: m.role,
         parts: [{ text: m.text }]
       }));
 
-      const responseText = await sendMessageToGemini(userText, history);
+      const response = await sendMessageToGemini(userText, history);
 
       const modelMsg: Message = {
         role: 'model',
-        text: responseText,
-        timestamp: new Date()
+        text: response.text,
+        timestamp: new Date(),
+        productRecommendation: response.productRecommendation
       };
       setMessages(prev => [...prev, modelMsg]);
     } catch (error) {
       console.error(error);
       setMessages(prev => [...prev, { 
         role: 'model', 
-        text: 'Error de conexión con la base de datos central. Por favor, reintente la consulta.', 
+        text: 'Error de conexión. Intenta de nuevo.', 
         timestamp: new Date() 
       }]);
     } finally {
@@ -65,121 +71,145 @@ export const AiDemo: React.FC = () => {
   const resetChat = () => {
     setMessages([{
       role: 'model',
-      text: "Conexión establecida con la Base de Datos Central. Soy el Director de Inteligencia de Datos de 128 Brand. ¿Qué información sobre nuestros servicios o tarifas necesitas consultar hoy?",
+      text: "Hola. Soy Brandy, tu consultora de Inteligencia Artificial. ¿Te gustaría saber cómo automatizar tus ventas y ahorrar costes hoy mismo?",
       timestamp: new Date()
     }]);
     setInputValue('');
   };
 
-  return (
-    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center relative overflow-hidden">
-      
-      {/* Organic Background Elements (Consistent with Landing) */}
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-brand-accent/20 rounded-full blur-[120px] animate-blob mix-blend-screen pointer-events-none"></div>
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[100px] animate-blob animation-delay-2000 mix-blend-screen pointer-events-none"></div>
-      
-      <div className="w-full max-w-4xl mb-8 text-center relative z-10">
-        <div className="inline-flex items-center justify-center p-3 bg-brand-accent/10 rounded-full mb-4 ring-1 ring-brand-accent/30">
-          <Bot className="w-8 h-8 text-brand-accent" />
-        </div>
-        <h2 className="text-3xl font-bold text-white mb-2">Central de Inteligencia</h2>
-        <p className="text-gray-400">
-          Consulta directa a nuestra <strong>Base de Datos</strong> en tiempo real.
-        </p>
-      </div>
+  // Helper to find product details
+  const getProductDetails = (id?: string) => SAAS_PRODUCTS.find(p => p.id === id);
 
-      <div className="w-full max-w-2xl bg-[#0f0c29]/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[600px] relative z-10 transition-all duration-500 hover:shadow-[0_0_40px_rgba(124,58,237,0.1)]">
+  return (
+    <div className="fixed bottom-0 right-0 md:bottom-6 md:right-6 z-[100] w-full md:w-[400px] h-[100dvh] md:h-[650px] md:max-h-[85vh] flex flex-col pointer-events-none">
+       {/* Container with animation */}
+       <div className="flex-1 flex flex-col bg-[#0f0c29]/95 backdrop-blur-xl border border-white/20 md:rounded-2xl shadow-2xl overflow-hidden pointer-events-auto animate-pop-in">
         
         {/* Chat Header */}
-        <div className="bg-white/5 border-b border-white/5 p-4 flex justify-between items-center">
+        <div className="bg-gradient-to-r from-brand-accent/20 to-purple-900/40 border-b border-white/10 p-4 flex justify-between items-center shrink-0">
           <div className="flex items-center space-x-3">
             <div className="relative">
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-accent to-purple-500 flex items-center justify-center shadow-lg">
                 <Bot className="w-6 h-6 text-white" />
               </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#0f0c29] rounded-full animate-pulse"></div>
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[#0f0c29] rounded-full animate-pulse"></div>
             </div>
             <div>
-              <h3 className="font-bold text-white">Director de Datos</h3>
-              <p className="text-xs text-indigo-300 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
-                Connected to Database
+              <h3 className="font-bold text-white text-sm">Brandy AI</h3>
+              <p className="text-[10px] text-indigo-300 flex items-center gap-1 uppercase tracking-wider font-medium">
+                <Sparkles className="w-3 h-3" /> Online Sales Agent
               </p>
             </div>
           </div>
-          <button 
-            onClick={resetChat}
-            className="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/10 group"
-            title="Reiniciar conversación"
-          >
-            <RefreshCcw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
-          </button>
+          <div className="flex items-center gap-1">
+             <button 
+                onClick={resetChat}
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Reiniciar chat"
+             >
+                <RefreshCcw className="w-4 h-4" />
+             </button>
+             <button 
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+             >
+                <X className="w-5 h-5" />
+             </button>
+          </div>
         </div>
 
-        {/* Chat Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide bg-black/20">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-hide bg-black/20">
           {messages.map((msg, index) => (
             <div 
               key={index} 
-              className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up`}
-              style={{ animationDelay: `${index * 50}ms` }}
+              className={`flex flex-col w-full animate-fade-in-up space-y-2`}
             >
-              <div className={`flex max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-1 shadow-sm ${
-                  msg.role === 'user' ? 'bg-zinc-700 ml-3' : 'bg-brand-accent/20 mr-3'
-                }`}>
-                  {msg.role === 'user' ? <User className="w-4 h-4 text-gray-300" /> : <Bot className="w-4 h-4 text-brand-accent" />}
-                </div>
-
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-md backdrop-blur-sm ${
-                  msg.role === 'user' 
-                    ? 'bg-brand-accent text-white rounded-tr-none' 
-                    : 'bg-white/10 text-gray-100 rounded-tl-none border border-white/5'
-                }`}>
-                   {/* Simple markdown-like rendering for bold text */}
-                  {msg.text.split('**').map((part, i) => 
-                    i % 2 === 1 ? <strong key={i} className="font-bold text-white">{part}</strong> : part
-                  )}
+              <div className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`flex max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                   {msg.role !== 'user' && (
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center mr-3 mt-1">
+                         <Bot className="w-4 h-4 text-brand-accent" />
+                      </div>
+                   )}
+                  
+                  <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm whitespace-pre-wrap ${
+                    msg.role === 'user' 
+                      ? 'bg-brand-accent text-white rounded-tr-none' 
+                      : 'bg-[#1a1a2e] text-gray-200 rounded-tl-none border border-white/5'
+                  }`}>
+                     {msg.text.split('**').map((part, i) => 
+                      i % 2 === 1 ? <span key={i} className="font-bold text-white">{part}</span> : part
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* Product Card Rendering */}
+              {msg.productRecommendation && getProductDetails(msg.productRecommendation) && (
+                  <div className="ml-11 max-w-[80%] animate-pop-in">
+                      <div className="bg-gradient-to-br from-[#1e1e2f] to-[#0f0c29] border border-brand-accent/30 rounded-xl overflow-hidden shadow-lg group hover:border-brand-accent/60 transition-colors">
+                          <div className="p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                  <div className="bg-brand-neon text-black text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider flex items-center gap-1">
+                                    <Star className="w-3 h-3 fill-black" /> Recomendado
+                                  </div>
+                              </div>
+                              <h4 className="text-white font-bold text-lg mb-1">{getProductDetails(msg.productRecommendation)?.name}</h4>
+                              <p className="text-gray-400 text-xs mb-3 line-clamp-2">{getProductDetails(msg.productRecommendation)?.description}</p>
+                              <div className="flex items-center gap-2 mb-4">
+                                  <span className="text-brand-accent font-bold text-lg">350€</span>
+                                  <span className="text-gray-500 text-xs">+ IVA / mes</span>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                    onClose();
+                                    document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                                className="w-full bg-white text-black font-bold py-2 rounded-lg text-xs hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                              >
+                                  Probar Gratis 7 Días <ArrowRight className="w-3 h-3" />
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              )}
             </div>
           ))}
           {isLoading && (
             <div className="flex justify-start w-full animate-fade-in-up">
-               <div className="flex items-center space-x-2 ml-11 bg-white/5 p-3 rounded-2xl rounded-tl-none border border-white/5">
-                 <Loader2 className="w-4 h-4 text-brand-accent animate-spin" />
-                 <span className="text-xs text-gray-400">Consultando registros...</span>
+               <div className="flex items-center space-x-2 ml-11 bg-[#1a1a2e] p-3 px-5 rounded-2xl rounded-tl-none border border-white/5">
+                 <Loader2 className="w-3 h-3 text-brand-accent animate-spin" />
+                 <span className="text-xs text-gray-400">Analizando respuesta...</span>
                </div>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className="p-4 bg-white/5 border-t border-white/10 backdrop-blur-md">
+        {/* Input */}
+        <div className="p-4 bg-[#0a0a12] border-t border-white/10 shrink-0">
           <form onSubmit={handleSendMessage} className="relative flex items-center">
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Consulta precio, stock o especificaciones..."
-              disabled={isLoading}
-              className="w-full bg-black/30 border border-white/10 text-white rounded-xl pl-4 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-brand-accent/50 focus:border-brand-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed placeholder-gray-500"
+              placeholder="Pregunta sobre nuestros servicios..."
+              className="w-full bg-[#1a1a2e] border border-white/10 text-white text-sm rounded-xl pl-4 pr-12 py-3.5 focus:outline-none focus:ring-1 focus:ring-brand-accent/50 focus:border-brand-accent transition-all placeholder-gray-500"
             />
             <button
               type="submit"
               disabled={!inputValue.trim() || isLoading}
-              className="absolute right-2 p-2 bg-brand-accent rounded-lg text-white hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-brand-accent transition-colors shadow-lg"
+              className="absolute right-2 p-2 bg-brand-accent rounded-lg text-white hover:bg-brand-accent/90 disabled:opacity-50 disabled:bg-gray-800 transition-colors"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4" />
             </button>
           </form>
-          <p className="text-center text-xs text-gray-600 mt-3">
-            128 Brand Intelligence. Datos extraídos en tiempo real.
-          </p>
+          <div className="text-center mt-2 flex items-center justify-center gap-1 opacity-50">
+             <div className="w-1.5 h-1.5 bg-brand-neon rounded-full animate-pulse"></div>
+             <span className="text-[10px] text-gray-500 font-medium">Powered by 128 Brand Intelligence</span>
+          </div>
         </div>
-
       </div>
     </div>
   );
