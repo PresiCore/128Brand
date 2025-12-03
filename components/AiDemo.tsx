@@ -8,7 +8,7 @@ export const AiDemo: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'model',
-      text: "¡Hola! 👋 Soy Brandy, especialista en IA de 128 Brand. Estoy aquí para ver si podemos ayudarte a ahorrar tiempo y dinero. Para empezar, ¿cuál es el mayor desafío operativo que tiene tu empresa hoy?",
+      text: "Conexión establecida con la Base de Datos Central. Soy el Director de Inteligencia de Datos de 128 Brand. ¿Qué información sobre nuestros servicios o tarifas necesitas consultar hoy?",
       timestamp: new Date()
     }
   ]);
@@ -54,7 +54,7 @@ export const AiDemo: React.FC = () => {
       console.error(error);
       setMessages(prev => [...prev, { 
         role: 'model', 
-        text: 'Lo siento, mis servidores neuronales están saturados. ¿Podemos intentarlo de nuevo?', 
+        text: 'Error de conexión con la base de datos central. Por favor, reintente la consulta.', 
         timestamp: new Date() 
       }]);
     } finally {
@@ -65,7 +65,7 @@ export const AiDemo: React.FC = () => {
   const resetChat = () => {
     setMessages([{
       role: 'model',
-      text: "¡Hola! 👋 Soy Brandy, especialista en IA de 128 Brand. Estoy aquí para ver si podemos ayudarte a ahorrar tiempo y dinero. Para empezar, ¿cuál es el mayor desafío operativo que tiene tu empresa hoy?",
+      text: "Conexión establecida con la Base de Datos Central. Soy el Director de Inteligencia de Datos de 128 Brand. ¿Qué información sobre nuestros servicios o tarifas necesitas consultar hoy?",
       timestamp: new Date()
     }]);
     setInputValue('');
@@ -82,9 +82,9 @@ export const AiDemo: React.FC = () => {
         <div className="inline-flex items-center justify-center p-3 bg-brand-accent/10 rounded-full mb-4 ring-1 ring-brand-accent/30">
           <Bot className="w-8 h-8 text-brand-accent" />
         </div>
-        <h2 className="text-3xl font-bold text-white mb-2">Habla con Brandy</h2>
+        <h2 className="text-3xl font-bold text-white mb-2">Central de Inteligencia</h2>
         <p className="text-gray-400">
-          Nuestro agente de ventas IA. No solo responde, <strong>entiende tu negocio</strong>.
+          Consulta directa a nuestra <strong>Base de Datos</strong> en tiempo real.
         </p>
       </div>
 
@@ -100,10 +100,10 @@ export const AiDemo: React.FC = () => {
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#0f0c29] rounded-full animate-pulse"></div>
             </div>
             <div>
-              <h3 className="font-bold text-white">Brandy</h3>
+              <h3 className="font-bold text-white">Director de Datos</h3>
               <p className="text-xs text-indigo-300 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
-                Senior AI Consultant
+                Connected to Database
               </p>
             </div>
           </div>
@@ -149,7 +149,7 @@ export const AiDemo: React.FC = () => {
             <div className="flex justify-start w-full animate-fade-in-up">
                <div className="flex items-center space-x-2 ml-11 bg-white/5 p-3 rounded-2xl rounded-tl-none border border-white/5">
                  <Loader2 className="w-4 h-4 text-brand-accent animate-spin" />
-                 <span className="text-xs text-gray-400">Brandy está analizando tu respuesta...</span>
+                 <span className="text-xs text-gray-400">Consultando registros...</span>
                </div>
             </div>
           )}
@@ -163,7 +163,7 @@ export const AiDemo: React.FC = () => {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Escribe aquí tu respuesta..."
+              placeholder="Consulta precio, stock o especificaciones..."
               disabled={isLoading}
               className="w-full bg-black/30 border border-white/10 text-white rounded-xl pl-4 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-brand-accent/50 focus:border-brand-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed placeholder-gray-500"
             />
@@ -176,7 +176,7 @@ export const AiDemo: React.FC = () => {
             </button>
           </form>
           <p className="text-center text-xs text-gray-600 mt-3">
-            128 Brand AI Demo. Powered by 128 Brand Intelligence.
+            128 Brand Intelligence. Datos extraídos en tiempo real.
           </p>
         </div>
 
