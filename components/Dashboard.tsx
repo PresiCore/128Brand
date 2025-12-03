@@ -19,6 +19,10 @@ const IconMap: Record<string, React.ElementType> = {
 
 const CLOUD_RUN_URL = "https://service-128brand-ai-chatbot-saas-785237534052.us-west1.run.app";
 
+// [NUEVO] Conexión con el Backend SaaS
+const SAAS_API_URL = "https://us-central1-brand-ai-chatbot-saas.cloudfunctions.net/activateClientToken";
+const AGENCY_SECRET_KEY = "128BRAND_SECRET_KEY_2024"; // Asegúrate de que coincida con lo que pusiste en firebase functions:config:set
+
 // --- COMPONENT: OFFER PAGE ---
 interface OfferPageProps {
     product: SaasProduct;
@@ -426,26 +430,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         
         setIsProvisioning(true);
 
-        // Generate Real Token (simulated randomness)
-        const mockToken = `128-${userId.substring(0, 5)}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
-        
+        // 1. Generar un Token Único para el cliente
+        const mockToken = `128-${userId.substring(0, 5)}-${Date.now().toString(36)}`;
+        console.log("🚀 Iniciando activación de licencia:", mockToken);
+
+        // 2. [INTEGRACIÓN] Llamada a la Cloud Function del SaaS
+        try {
+            // Usamos el email real del usuario o un fallback si es demo
+            const userEmail = user?.email || 'cliente@demo.com';
+
+            const response = await fetch(SAAS_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${AGENCY_SECRET_KEY}`
+                },
+                body: JSON.stringify({
+                    token: mockToken,
+                    email: userEmail,
+                    plan: 'trial_7_days',
+                    // Calculamos 7 días de validez
+                    expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                })
+            });
+
+            if (response.ok) {
+                console.log("✅ ÉXITO: Licencia creada en el servidor SaaS");
+            } else {
+                console.error("⚠️ ALERTA: El SaaS respondió con error:", await response.text());
+            }
+        } catch (error) {
+            console.error("❌ ERROR CRÍTICO: No se pudo conectar con el SaaS:", error);
+        }
+
+        // 3. Lógica Visual (UI de la Agencia)
+        // Esto mantiene la experiencia de usuario fluida mientras se procesa en fondo
         const newService = { 
             ...selectedProduct, 
             status: 'active', 
             deployedAt: new Date().toISOString(),
             token: mockToken,
-            trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+            trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         } as SaasProduct;
 
-        // --- FIRESTORE WRITE LOGIC ---
-        // 1. Update Local State (Immediate UI feedback)
+        // Actualizar estado local
         const updatedServices = [...myServices, newService];
         setMyServices(updatedServices);
         localStorage.setItem(`services_${userId}`, JSON.stringify(updatedServices));
 
-        // 2. Write to Firestore (Real Provisioning)
+        // Guardar registro en la BD de la Agencia (Historial de ventas)
         try {
-            // Create document in 'licenses' collection
             await setDoc(doc(db, "licenses", mockToken), {
                 userId: userId,
                 productId: selectedProduct.id,
@@ -455,10 +489,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 plan: 'trial'
             });
         } catch (e) {
-            console.error("Error creating license in DB, fallback to local", e);
+            console.error("Error guardando licencia local", e);
         }
 
-        // Wait for animation
+        // Simular tiempo de espera para efecto dramático (Provisioning UI)
         await new Promise(resolve => setTimeout(resolve, 4500));
         
         setIsProvisioning(false);
