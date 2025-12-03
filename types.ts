@@ -1,0 +1,47 @@
+
+export enum ViewState {
+  HOME = 'HOME',
+  SERVICES = 'SERVICES',
+  AI_DEMO = 'AI_DEMO',
+  CONTACT = 'CONTACT',
+  LOGIN = 'LOGIN',
+  DASHBOARD = 'DASHBOARD'
+}
+
+export interface Message {
+  role: 'user' | 'model';
+  text: string;
+  timestamp: Date;
+}
+
+export interface ServiceItem {
+  title: string;
+  description: string;
+  icon: 'brain' | 'cpu' | 'message' | 'barChart';
+}
+
+export interface ChatState {
+  messages: Message[];
+  isLoading: boolean;
+}
+
+// SaaS Specific Types
+export interface SaasProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  category: 'Automation' | 'Chatbot' | 'Data';
+  status: 'available' | 'deploying' | 'active';
+  iconName: 'Bot' | 'FileText' | 'Workflow' | 'Database'; // String for DB storage
+  demoId?: 'sdr' | 'invoice' | 'social' | 'legal'; // ID for the interactive component
+  token?: string; // New: License Token
+  trialEndsAt?: string; // New: Expiration date for trial
+}
+
+export interface UserProfile {
+  name: string;
+  company: string;
+  email: string;
+  activeServices: SaasProduct[];
+}
