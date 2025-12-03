@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { SaasProduct } from '../types';
 import { db } from '../services/firebase';
-import { collection, query, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { SAAS_PRODUCTS } from '../constants';
 
 const IconMap: Record<string, React.ElementType> = {
@@ -391,9 +391,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         const initFirestore = async () => {
             try {
                 if (isAdminDemo || isClientDemo) return;
-                // Just check connection
-                const q = query(collection(db, 'products'));
-                await getDocs(q); 
+                // Just check connection by fetching a collection (empty or not)
+                // Modular SDK call
+                await getDocs(collection(db, 'products')); 
                 setIsOffline(false);
             } catch (error: any) {
                 // Silently fail to offline mode without logging connection errors
@@ -428,17 +428,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     const activateTrial = async () => {
         if (!selectedProduct) return;
         
+        // VALIDACIÓN 1: Asegurar que tenemos el email del usuario (Google a veces tarda en cargarlo)
+        const userEmail = user?.email;
+        if (!userEmail) {
+            alert("Error: No se detectó un email válido en tu sesión. Por favor, cierra sesión y vuelve a entrar con Google.");
+            return;
+        }
+    
         setIsProvisioning(true);
-
-        // 1. Generar un Token Único para el cliente
+    
+        // Generamos el Token
         const mockToken = `128-${userId.substring(0, 5)}-${Date.now().toString(36)}`;
-        console.log("🚀 Iniciando activación de licencia:", mockToken);
-
-        // 2. [INTEGRACIÓN] Llamada a la Cloud Function del SaaS
+        console.log("🚀 Iniciando transacción segura para:", mockToken);
+    
         try {
-            // Usamos el email real del usuario o un fallback si es demo
-            const userEmail = user?.email || 'cliente@demo.com';
-
+            // --- PASO CRÍTICO: LLAMADA BLOQUEANTE AL SAAS ---
+            // Esperamos (await) a que el servidor responda ANTES de seguir.
             const response = await fetch(SAAS_API_URL, {
                 method: 'POST',
                 headers: {
@@ -449,56 +454,63 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                     token: mockToken,
                     email: userEmail,
                     plan: 'trial_7_days',
-                    // Calculamos 7 días de validez
                     expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
                 })
             });
-
-            if (response.ok) {
-                console.log("✅ ÉXITO: Licencia creada en el servidor SaaS");
-            } else {
-                console.error("⚠️ ALERTA: El SaaS respondió con error:", await response.text());
+    
+            // VALIDACIÓN 2: Si el servidor no dice "OK", abortamos todo.
+            if (!response.ok) {
+                const errorDetails = await response.text();
+                throw new Error(`El servidor SaaS rechazó la operación (Error ${response.status}): ${errorDetails}`);
             }
-        } catch (error) {
-            console.error("❌ ERROR CRÍTICO: No se pudo conectar con el SaaS:", error);
+    
+            // --- SI LLEGAMOS AQUÍ, EL TOKEN YA EXISTE EN EL SAAS AL 100% ---
+            console.log("✅ Confirmación recibida: El token es válido y existe en la DB.");
+    
+            // AHORA SÍ: Guardamos en local y mostramos al usuario
+            const newService = { 
+                ...selectedProduct, 
+                status: 'active', 
+                deployedAt: new Date().toISOString(),
+                token: mockToken,
+                trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+            } as SaasProduct;
+    
+            const updatedServices = [...myServices, newService];
+            setMyServices(updatedServices);
+            localStorage.setItem(`services_${userId}`, JSON.stringify(updatedServices));
+    
+            // Guardamos copia en la Agencia (Backup)
+            try {
+                // Modular SDK setDoc
+                await setDoc(doc(db, "licenses", mockToken), {
+                    userId: userId,
+                    productId: selectedProduct.id,
+                    status: 'active',
+                    createdAt: new Date(),
+                    trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                    plan: 'trial',
+                    userEmail: userEmail // Guardamos también el email por si acaso
+                });
+            } catch (e) {
+                console.error("Warning: Error guardando backup local (no crítico)", e);
+            }
+    
+            // Pequeña espera estética para que la animación se vea bien
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            setIsProvisioning(false);
+            setSelectedProduct(newService);
+            setViewMode('manage');
+    
+        } catch (error: any) {
+            // GESTIÓN DE ERRORES: Si algo falló, NO damos el token.
+            console.error("❌ ERROR DE TRANSACCIÓN:", error);
+            setIsProvisioning(false);
+            
+            // Mensaje amigable pero técnico para ti
+            alert(`No se pudo activar la licencia. \n\nCausa: ${error.message || 'Error de conexión con el servidor de licencias'}.\n\nPor favor, verifica tu conexión o contacta a soporte.`);
         }
-
-        // 3. Lógica Visual (UI de la Agencia)
-        // Esto mantiene la experiencia de usuario fluida mientras se procesa en fondo
-        const newService = { 
-            ...selectedProduct, 
-            status: 'active', 
-            deployedAt: new Date().toISOString(),
-            token: mockToken,
-            trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        } as SaasProduct;
-
-        // Actualizar estado local
-        const updatedServices = [...myServices, newService];
-        setMyServices(updatedServices);
-        localStorage.setItem(`services_${userId}`, JSON.stringify(updatedServices));
-
-        // Guardar registro en la BD de la Agencia (Historial de ventas)
-        try {
-            await setDoc(doc(db, "licenses", mockToken), {
-                userId: userId,
-                productId: selectedProduct.id,
-                status: 'active',
-                createdAt: new Date(),
-                trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                plan: 'trial'
-            });
-        } catch (e) {
-            console.error("Error guardando licencia local", e);
-        }
-
-        // Simular tiempo de espera para efecto dramático (Provisioning UI)
-        await new Promise(resolve => setTimeout(resolve, 4500));
-        
-        setIsProvisioning(false);
-        // Switch to manage view immediately
-        setSelectedProduct(newService);
-        setViewMode('manage');
     };
 
     const handleServiceStatusChange = async (status: 'active' | 'paused') => {
@@ -513,8 +525,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
         // --- FIRESTORE UPDATE LOGIC ---
         try {
-            const licenseRef = doc(db, "licenses", selectedProduct.token);
-            await updateDoc(licenseRef, {
+            // Modular SDK updateDoc
+            await updateDoc(doc(db, "licenses", selectedProduct.token), {
                 status: status
             });
         } catch (e) {
@@ -532,6 +544,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
         // 2. Remove from Firestore
         try {
+             // Modular SDK deleteDoc
              await deleteDoc(doc(db, "licenses", selectedProduct.token));
         } catch (e) {
             console.error("Error deleting license from DB", e);

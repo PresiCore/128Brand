@@ -32,7 +32,7 @@ export interface SaasProduct {
   description: string;
   price: string;
   category: 'Automation' | 'Chatbot' | 'Data';
-  status: 'available' | 'deploying' | 'active';
+  status: 'available' | 'deploying' | 'active' | 'paused';
   iconName: 'Bot' | 'FileText' | 'Workflow' | 'Database'; // String for DB storage
   demoId?: 'sdr' | 'invoice' | 'social' | 'legal'; // ID for the interactive component
   token?: string; // New: License Token

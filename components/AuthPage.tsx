@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, googleProvider } from '../services/firebase';
+import { signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { Mail, Lock, Loader2, ArrowRight, Chrome, AlertCircle, Shield, Briefcase } from 'lucide-react';
 
 interface AuthPageProps {
@@ -20,13 +20,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, initialMode 
         setIsLoading(true);
         setError('');
         try {
+            // Modular SDK: Pass auth instance as first argument
             const result = await signInWithPopup(auth, googleProvider);
             onLoginSuccess(result.user);
         } catch (err: any) {
             console.error("Google Auth Error", err);
             
-            // IF DOMAIN IS RESTRICTED (Common in Preview Envs)
-            // We do NOT simulate login anymore. We tell the user to use Email/Pass for real registration.
             if (err.code === 'auth/unauthorized-domain' || err.code === 'auth/operation-not-allowed') {
                 setError('El inicio con Google está restringido en esta vista previa. Por favor, regístrate usando Email y Contraseña abajo para crear tu cuenta real.');
             } else if (err.code === 'auth/popup-closed-by-user') {
@@ -56,7 +55,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, initialMode 
             onLoginSuccess(result.user);
         } catch (err: any) {
             console.error("Auth Error", err);
-            // Translate common Firebase errors
             if (err.code === 'auth/email-already-in-use') {
                 setError('Este email ya está registrado. Prueba a iniciar sesión.');
             } else if (err.code === 'auth/weak-password') {
@@ -66,7 +64,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, initialMode 
             } else {
                 // Fallback safe mode for internal errors in preview
                 if (err.code === 'auth/internal-error' || err.code === 'auth/admin-restricted-operation') {
-                    // Only use fallback if absolutely necessary for internal connectivity issues, not domain logic
                     onLoginSuccess({ email, displayName: email.split('@')[0], uid: 'local_user_' + Math.random() });
                 } else {
                     setError('Error de autenticación. Por favor revisa tus datos.');
