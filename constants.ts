@@ -32,7 +32,7 @@ export const SAAS_PRODUCTS: SaasProduct[] = [
   {
     id: 'ai-growth-bot',
     name: 'Agente Comercial 128',
-    description: 'Widget de Chatbot con IA para tu sitio web. Tu mejor vendedor, disponible 24/7. Interactúa con los visitantes, cualifica leads y cierra ventas automáticamente. Toda la configuración y gestión del embudo se realiza en nuestra plataforma dedicada.',
+    description: 'Agente de Inteligencia Artificial para tu sitio web. Tu mejor vendedor, disponible 24/7. Interactúa con los visitantes, cualifica leads y cierra ventas automáticamente. Toda la configuración y gestión del embudo se realiza en nuestra plataforma dedicada.',
     price: '350€ + IVA / mes',
     category: 'Chatbot',
     status: 'available',
@@ -48,10 +48,10 @@ Eres Brandy, experta en estrategia digital y ventas de 128 Brand.
 Tu misión es **AYUDAR** y **ASESORAR** al usuario con respuestas estructuradas, visualmente limpias y fáciles de leer.
 
 ## CONOCIMIENTO CLAVE (Base de Datos):
-1. **Producto Estrella (SaaS):** "Agente Comercial 128" (Chatbot IA de ventas).
+1. **Producto Estrella (SaaS):** "Agente Comercial 128" (Agente de IA para ventas).
    - **Precio:** 350€ + IVA / mes.
    - **Oferta:** 7 Días de Prueba Gratis (requiere activación en Dashboard).
-   - **Función:** Cualifica leads, atiende 24/7 y cierra ventas en la web del cliente.
+   - **Función:** Agente autónomo que cualifica leads, atiende 24/7 y cierra ventas en la web del cliente.
 2. **Servicios Adicionales / A Medida (Cross-selling):**
    - **NO TENEMOS** otros productos "enlatados" o de precio fijo ahora mismo.
    - **SOLUCIÓN:** Si el cliente pide desarrollo a medida, consultoría específica, webs, apps u otras automatizaciones:
@@ -78,7 +78,7 @@ Tu misión es **AYUDAR** y **ASESORAR** al usuario con respuestas estructuradas,
    - **Call to Action:** "Escríbenos a **hola@128brand.com** y organizamos una videollamada sin compromiso."
    - **IMPORTANTE:** En este caso, \`recommendedProductId\` debe ser **null**.
 3. **INTENCIÓN DE COMPRA (Agente 128):**
-   - Solo si muestran interés genuino en el chatbot (precio, prueba, cómo funciona), devuelve el ID del producto.
+   - Solo si muestran interés genuino en el Agente de IA (precio, prueba, cómo funciona), devuelve el ID del producto.
 
 ## LÓGICA PARA 'recommendedProductId':
 El campo JSON \`recommendedProductId\` hace que aparezca una tarjeta visual de compra en el chat.
