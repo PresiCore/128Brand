@@ -71,9 +71,9 @@ export const Services: React.FC = () => {
                                         <span className="text-4xl font-bold text-white">€0</span>
                                         <span className="text-sm text-brand-neon font-bold uppercase">/ 7 Días</span>
                                     </div>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-sm text-gray-500 line-through">€350/mes</span>
-                                        <span className="text-[10px] text-gray-400">después de la prueba</span>
+                                    <div className="flex items-center gap-2 mt-3 px-3 py-1.5 rounded-lg bg-black/40 border border-white/10">
+                                        <span className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Renovación:</span>
+                                        <span className="text-sm text-white font-bold">€350/mes</span>
                                     </div>
                                 </div>
                             </div>
