@@ -1,20 +1,21 @@
-import * as functions from "firebase-functions/v1"; // Forzamos v1 aquí
+import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import * as nodemailer from "nodemailer";
 
-// Inicializar Admin SDK para acceso a Firestore
+// Inicializar Admin SDK
 admin.initializeApp();
 const db = admin.firestore();
 
 // --- CONFIGURACIÓN SMTP ---
+// ¡¡IMPORTANTE: AQUÍ YA NO DEBE HABER NINGÚN "const config = ..."!!
 
 const transporter = nodemailer.createTransport({
   host: "128brand-com.correoseguro.dinaserver.com",
   port: 465,
   secure: true,
   auth: {
-    user: process.env.SMTP_EMAIL,
-    pass: process.env.SMTP_PASSWORD,
+    user: process.env.SMTP_EMAIL,     // Solo process.env
+    pass: process.env.SMTP_PASSWORD,  // Solo process.env
   },
 });
 
@@ -250,7 +251,7 @@ export const checkExpiringTrials = functions.pubsub
                     upgrade_url: DASHBOARD_URL
                 });
                 
-                emailPromises.push(sendEmail(email, "⏳ URGENTE: Tu Agente se detendrá mañana", html));
+                emailPromises.push(sendEmail(email, "⏳ URGENTE: Tu Agente se detiene mañana", html));
             }
         });
 
