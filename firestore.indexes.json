@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "licenses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "plan",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "trialEndsAt",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
