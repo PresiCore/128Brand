@@ -10,8 +10,8 @@ const db = admin.firestore();
 // Para producción, usar variables de entorno: 
 // firebase functions:config:set smtp.email="tu@gmail.com" smtp.password="app_password"
 const transporter = nodemailer.createTransport({
-  host: "128brand-com.correoseguro.dinaserver.com", // Servidor de correo saliente
-  port: 465, // Puerto SMTPS
+  host: "128brand-com.correoseguro.dinaserver.com", // Servidor de correo saliente (según tu imagen)
+  port: 465, // Puerto SMTPS (según tu imagen)
   secure: true, // true para puerto 465 (SMTPS)
   auth: {
     user: process.env.SMTP_EMAIL || functions.config().smtp?.email,
