@@ -7,16 +7,14 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // --- CONFIGURACIÓN SMTP ---
-// Usamos (functions as any).config() para saltar el bloqueo de TypeScript
-const config = (functions as any).config(); 
 
 const transporter = nodemailer.createTransport({
   host: "128brand-com.correoseguro.dinaserver.com",
   port: 465,
   secure: true,
   auth: {
-    user: process.env.SMTP_EMAIL || config.smtp?.email,
-    pass: process.env.SMTP_PASSWORD || config.smtp?.password,
+    user: process.env.SMTP_EMAIL,
+    pass: process.env.SMTP_PASSWORD,
   },
 });
 
