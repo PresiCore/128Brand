@@ -13,7 +13,7 @@ export const AiDemo: React.FC<AiDemoProps> = ({ onClose }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'model',
-      text: "Hola. Soy Brandy, tu consultora de Inteligencia Artificial. ¿Te gustaría saber cómo automatizar tus ventas y ahorrar costes hoy mismo?",
+      text: "Conectado al Núcleo de Inteligencia 128. Soy el Director de Datos. ¿Qué información sobre nuestros servicios necesitas extraer hoy?",
       timestamp: new Date()
     }
   ]);
@@ -71,7 +71,7 @@ export const AiDemo: React.FC<AiDemoProps> = ({ onClose }) => {
   const resetChat = () => {
     setMessages([{
       role: 'model',
-      text: "Hola. Soy Brandy, tu consultora de Inteligencia Artificial. ¿Te gustaría saber cómo automatizar tus ventas y ahorrar costes hoy mismo?",
+      text: "Conectado al Núcleo de Inteligencia 128. Soy el Director de Datos. ¿Qué información sobre nuestros servicios necesitas extraer hoy?",
       timestamp: new Date()
     }]);
     setInputValue('');
@@ -97,7 +97,7 @@ export const AiDemo: React.FC<AiDemoProps> = ({ onClose }) => {
             <div>
               <h3 className="font-bold text-white text-sm">Brandy AI</h3>
               <p className="text-[10px] text-indigo-300 flex items-center gap-1 uppercase tracking-wider font-medium">
-                <Sparkles className="w-3 h-3" /> Online Sales Agent
+                <Sparkles className="w-3 h-3" /> Data Intelligence
               </p>
             </div>
           </div>
