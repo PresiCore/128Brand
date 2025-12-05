@@ -10,7 +10,7 @@ const db = admin.firestore();
 
 // --- CONFIGURACIÓN SMTP ROBUSTA ---
 const getSmtpConfig = () => {
-    // Usamos variables de entorno estándar (.env)
+    // Versión limpia: Solo lee del archivo .env
     const email = process.env.SMTP_EMAIL;
     const password = process.env.SMTP_PASSWORD;
     return { email, password };
@@ -324,7 +324,9 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
     `;
 
     try {
-        const targetEmail = "ivancorebrand@gmail.com";
+        // Ahora sí, enviamos al corporativo
+        const targetEmail = "hola@128brand.com"; 
+        
         await sendEmail(targetEmail, `Nuevo Lead Web: ${name}`, html);
         return { success: true };
     } catch (error: any) {
