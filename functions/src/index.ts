@@ -7,14 +7,14 @@ if (admin.apps.length === 0) {
     admin.initializeApp();
 }
 
-// --- CONFIGURACIÓN SMTP ---
-const email = process.env.SMTP_EMAIL;
-const password = process.env.SMTP_PASSWORD;
+// --- CONFIGURACIÓN SMTP (HARDCODED PARA DEBUG) ---
+const email = "hola@128brand.com";
+const password = "EmailGalactica101!"; // Tu contraseña real
 
 // --- HELPERS ---
 const createTransporter = () => {
     if (!email || !password) {
-        console.error("❌ ERROR CRÍTICO: No se han leído las variables de entorno (.env).");
+        console.error("❌ ERROR CRÍTICO: Credenciales de correo no definidas.");
         return null;
     }
     return nodemailer.createTransport({
@@ -25,7 +25,7 @@ const createTransporter = () => {
     });
 };
 
-// 1. TRIGGER: NUEVO USUARIO (Opcional, lo dejamos para que no de error si existe en DB)
+// 1. TRIGGER: NUEVO USUARIO (Opcional)
 export const onUserCreated = functions.firestore
   .document("users/{userId}")
   .onCreate(async (snap, context) => {
@@ -46,7 +46,7 @@ export const onLicenseUpdated = functions.firestore
         return null;
     });
 
-// 4. FUNCION HTTPS: FORMULARIO DE CONTACTO (DEBUG VERSION CORREGIDA)
+// 4. FUNCION HTTPS: FORMULARIO DE CONTACTO
 export const sendContactEmail = functions.https.onCall(async (data, context) => {
     console.log("1. Función sendContactEmail iniciada.");
     
@@ -73,7 +73,7 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
         throw new functions.https.HttpsError('internal', `No se pudo conectar al correo: ${error.message}`);
     }
 
-    // CORRECCIÓN: Ahora usamos 'company' en el HTML para que no de error
+    // HTML del correo
     const html = `
     <div style="font-family: Arial, sans-serif; padding: 20px;">
         <h2>Nuevo Mensaje de ${name}</h2>
