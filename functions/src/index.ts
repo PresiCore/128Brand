@@ -11,8 +11,7 @@ const db = admin.firestore();
 // --- CONFIGURACIÓN SMTP ROBUSTA ---
 const getSmtpConfig = () => {
     // Intenta obtener de functions.config() (Legacy/Production)
-    cconst config = (functions as any).config();onst config = (functions as any).config();
-    // Intenta obtener de process.env (Local/Dotenv)
+const config = (functions as any).config();    // Intenta obtener de process.env (Local/Dotenv)
     const email = process.env.SMTP_EMAIL || (config.smtp && config.smtp.email);
     const password = process.env.SMTP_PASSWORD || (config.smtp && config.smtp.password);
     return { email, password };
