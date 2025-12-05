@@ -6,7 +6,7 @@ import * as nodemailer from "nodemailer";
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }
-const db = admin.firestore();
+// (Línea de db borrada para evitar error TS6133)
 
 // --- CONFIGURACIÓN SMTP ---
 // Lee las variables del archivo .env
@@ -66,7 +66,6 @@ export const onLicenseCreated = functions.firestore
   .document("licenses/{licenseId}")
   .onCreate(async (snap, context) => {
     const data = snap.data();
-    // Lógica simplificada para asegurar funcionamiento
     const userEmail = data.userEmail;
     if (!userEmail) return null;
 
@@ -87,7 +86,6 @@ export const onLicenseUpdated = functions.firestore
         const newData = change.after.data();
         const oldData = change.before.data();
         
-        // Si pasa a premium
         if (oldData.trialEndsAt && !newData.trialEndsAt) {
              if (newData.userEmail) {
                 await sendEmail(newData.userEmail, "💎 Eres Premium", "<h1>Pago Confirmado</h1><p>Gracias por confiar en 128 Brand.</p>");
@@ -96,11 +94,10 @@ export const onLicenseUpdated = functions.firestore
         return null;
     });
 
-// 4. FUNCION HTTPS: FORMULARIO DE CONTACTO (LA IMPORTANTE)
+// 4. FUNCION HTTPS: FORMULARIO DE CONTACTO
 export const sendContactEmail = functions.https.onCall(async (data, context) => {
     const { name, company, email: clientEmail, message } = data;
 
-    // Validación
     if (!name || !clientEmail || !message) {
         throw new functions.https.HttpsError('invalid-argument', 'Faltan datos requeridos.');
     }
@@ -119,11 +116,10 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
     try {
         if (!transporter) throw new functions.https.HttpsError('internal', 'Servidor de correo no listo');
 
-        // ENVÍO REAL
         await transporter.sendMail({
-            from: `"Formulario Web" <${email}>`, // Remitente: Tu correo corporativo
-            to: "hola@128brand.com",             // Destino: Tu correo corporativo
-            replyTo: clientEmail,                // Responder a: El email del cliente
+            from: `"Formulario Web" <${email}>`, 
+            to: "hola@128brand.com",             // <--- Destino: Tu correo corporativo
+            replyTo: clientEmail,                // <--- Responder a: El cliente
             subject: `🔔 Lead: ${name} - ${company || 'Web'}`,
             html: html
         });
