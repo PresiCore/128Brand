@@ -8,17 +8,13 @@ if (admin.apps.length === 0) {
 }
 
 // --- CONFIGURACIÓN SMTP ---
-// Lee las variables del archivo .env
 const email = process.env.SMTP_EMAIL;
 const password = process.env.SMTP_PASSWORD;
 
-const DASHBOARD_URL = "https://128brand.com";
-
 // --- HELPERS ---
-// Crear el transporter DENTRO de la función para asegurar que lee las variables frescas
 const createTransporter = () => {
     if (!email || !password) {
-        console.error("❌ ERROR CRÍTICO: No se han leído las variables de entorno (.env). Email:", email);
+        console.error("❌ ERROR CRÍTICO: No se han leído las variables de entorno (.env).");
         return null;
     }
     return nodemailer.createTransport({
@@ -29,73 +25,32 @@ const createTransporter = () => {
     });
 };
 
-const sendEmailHelper = async (to: string, subject: string, html: string) => {
-  const transporter = createTransporter();
-  if (!transporter) throw new Error("Servidor de correo no configurado (Variables de entorno faltantes).");
-  
-  return transporter.sendMail({
-    from: `"128 Brand" <${email}>`,
-    to,
-    subject,
-    html,
-  });
-};
-
-// 1. TRIGGER: NUEVO USUARIO REGISTRADO
+// 1. TRIGGER: NUEVO USUARIO (Opcional, lo dejamos para que no de error si existe en DB)
 export const onUserCreated = functions.firestore
   .document("users/{userId}")
   .onCreate(async (snap, context) => {
-    const data = snap.data();
-    if (!data.email) return null;
-
-    const html = `<h1>Bienvenido a 128 Brand</h1><p>Hola ${data.name || 'Cliente'}, tu cuenta ha sido creada.</p><a href="${DASHBOARD_URL}">Ir al Dashboard</a>`;
-    
-    try {
-        await sendEmailHelper(data.email, "Bienvenido a 128 Brand", html);
-    } catch (error) {
-        console.error("Error welcome email:", error);
-    }
-    return null;
+    return null; 
   });
 
-// 2. TRIGGER: NUEVA LICENCIA (TRIAL)
+// 2. TRIGGER: LICENCIAS (Opcional)
 export const onLicenseCreated = functions.firestore
   .document("licenses/{licenseId}")
   .onCreate(async (snap, context) => {
-    const data = snap.data();
-    const userEmail = data.userEmail;
-    if (!userEmail) return null;
-
-    const html = `<h1>Licencia Activada</h1><p>Token: <b>${context.params.licenseId}</b></p>`;
-    
-    try {
-        await sendEmailHelper(userEmail, "🚀 Tu Instancia de IA está lista", html);
-    } catch (error) {
-        console.error("Error trial email:", error);
-    }
     return null;
   });
 
-// 3. TRIGGER: ACTUALIZACIÓN A PREMIUM
+// 3. TRIGGER: ACTUALIZACIÓN (Opcional)
 export const onLicenseUpdated = functions.firestore
     .document("licenses/{licenseId}")
     .onUpdate(async (change, context) => {
-        const newData = change.after.data();
-        const oldData = change.before.data();
-        
-        if (oldData.trialEndsAt && !newData.trialEndsAt) {
-             if (newData.userEmail) {
-                await sendEmailHelper(newData.userEmail, "💎 Eres Premium", "<h1>Pago Confirmado</h1><p>Gracias por confiar en 128 Brand.</p>");
-             }
-        }
         return null;
     });
 
-// 4. FUNCION HTTPS: FORMULARIO DE CONTACTO (DEBUG VERSION)
+// 4. FUNCION HTTPS: FORMULARIO DE CONTACTO (DEBUG VERSION CORREGIDA)
 export const sendContactEmail = functions.https.onCall(async (data, context) => {
     console.log("1. Función sendContactEmail iniciada.");
-    console.log("   - Datos recibidos:", JSON.stringify(data));
-
+    
+    // Aquí declaramos 'company'
     const { name, company, email: clientEmail, message } = data;
 
     // Validación
@@ -106,10 +61,9 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
 
     const transporter = createTransporter();
     if (!transporter) {
-        throw new functions.https.HttpsError('internal', 'Error de configuración del servidor (Credenciales).');
+        throw new functions.https.HttpsError('internal', 'Error de configuración del servidor.');
     }
 
-    // Verificar conexión SMTP antes de enviar
     try {
         console.log("3. Verificando conexión con Dinahosting...");
         await transporter.verify();
@@ -119,12 +73,13 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
         throw new functions.https.HttpsError('internal', `No se pudo conectar al correo: ${error.message}`);
     }
 
+    // CORRECCIÓN: Ahora usamos 'company' en el HTML para que no de error
     const html = `
     <div style="font-family: Arial, sans-serif; padding: 20px;">
         <h2>Nuevo Mensaje de ${name}</h2>
-        <p><strong>Empresa:</strong> ${company || 'No indicada'}</p>
-        <p>Email Cliente: ${clientEmail}</p>
-        <p>Mensaje: ${message}</p>
+        <p><strong>Empresa:</strong> ${company || 'No especificada'}</p>
+        <p><strong>Email Cliente:</strong> ${clientEmail}</p>
+        <p><strong>Mensaje:</strong> ${message}</p>
     </div>
     `;
 
@@ -132,8 +87,8 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
         console.log("5. Intentando enviar email...");
         const info = await transporter.sendMail({
             from: `"Formulario Web" <${email}>`,
-            to: "hola@128brand.com",       // <--- Destino Corporativo
-            cc: "ivancorebrand@gmail.com", // <--- Copia Seguridad
+            to: "hola@128brand.com",       // Destino Corporativo
+            cc: "ivancorebrand@gmail.com", // Copia Seguridad
             replyTo: clientEmail,
             subject: `🔔 Lead: ${name}`,
             html: html
