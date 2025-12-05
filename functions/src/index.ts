@@ -122,6 +122,7 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
     const html = `
     <div style="font-family: Arial, sans-serif; padding: 20px;">
         <h2>Nuevo Mensaje de ${name}</h2>
+        <p><strong>Empresa:</strong> ${company || 'No indicada'}</p>
         <p>Email Cliente: ${clientEmail}</p>
         <p>Mensaje: ${message}</p>
     </div>
