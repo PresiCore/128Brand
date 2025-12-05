@@ -324,7 +324,7 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
     `;
 
     try {
-        const targetEmail = process.env.CONTACT_TARGET_EMAIL || "hola@128brand.com";
+        const targetEmail = "ivancorebrand@gmail.com";
         await sendEmail(targetEmail, `Nuevo Lead Web: ${name}`, html);
         return { success: true };
     } catch (error: any) {
