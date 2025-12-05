@@ -314,9 +314,8 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
 
     const html = `
     <h2>Nuevo Mensaje de Contacto Web</h2>
-    <p><strong>Nombre:</strong> ${name}</p>
+    <p><strong>De:</strong> ${name} (${email})</p>
     <p><strong>Empresa:</strong> ${company || 'No especificada'}</p>
-    <p><strong>Email:</strong> ${email}</p>
     <p><strong>Mensaje:</strong></p>
     <blockquote style="background: #f9f9f9; padding: 10px; border-left: 5px solid #7c3aed;">
         ${message}
@@ -324,14 +323,24 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
     `;
 
     try {
-        // Ahora sí, enviamos al corporativo
+        // 1. Enviamos el correo A TI (hola@128brand.com)
         const targetEmail = "hola@128brand.com"; 
         
-        await sendEmail(targetEmail, `Nuevo Lead Web: ${name}`, html);
+        // 2. Usamos el transporte directo para añadir "replyTo" (Responder a)
+        // Así, al darle a responder, le escribirás al cliente y no a ti mismo.
+        if (!transporter) throw new Error("No hay configuración SMTP");
+
+        await transporter.sendMail({
+            from: `"Formulario Web" <${smtpEmail}>`, // Sale de tu servidor
+            to: targetEmail,                         // Llega a tu corporativo
+            replyTo: email,                          // Responder va al cliente
+            subject: `Nuevo Lead Web: ${name}`,
+            html: html
+        });
+
         return { success: true };
     } catch (error: any) {
         console.error("Error enviando formulario:", error);
-        // Retornamos el mensaje real del error SMTP para debugging (Solo desarrollo)
         throw new functions.https.HttpsError('internal', `Error SMTP: ${error.message || 'Error desconocido'}`);
     }
 });
