@@ -12,12 +12,14 @@ export const Contact: React.FC = () => {
     message: ''
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) return;
 
     setStatus('submitting');
+    setErrorMessage('');
 
     try {
       const sendEmailFn = httpsCallable(functions, 'sendContactEmail');
@@ -26,8 +28,10 @@ export const Contact: React.FC = () => {
       console.log('Email enviado:', formData);
       setStatus('success');
       setFormData({ name: '', company: '', email: '', message: '' });
-    } catch (error) {
-      console.error("Error al enviar:", error);
+    } catch (error: any) {
+      console.error("Error al enviar el formulario:", error);
+      // Extraemos el mensaje de error del backend si existe
+      setErrorMessage(error.message || 'Error interno del servidor');
       setStatus('error');
     }
   };
@@ -135,8 +139,6 @@ export const Contact: React.FC = () => {
                     />
                   </div>
 
-                  {/* Removed '¿Qué necesitas?' Select field as requested */}
-
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-300">Mensaje</label>
                     <textarea 
@@ -149,6 +151,12 @@ export const Contact: React.FC = () => {
                       required
                     ></textarea>
                   </div>
+
+                  {status === 'error' && (
+                      <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                          Error al enviar: {errorMessage}
+                      </div>
+                  )}
 
                   <button 
                     type="submit"

@@ -3,24 +3,44 @@ import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import * as nodemailer from "nodemailer";
 
-// Inicializar Admin SDK
-admin.initializeApp();
+// Inicializar Admin SDK si no está inicializado
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 
-// --- CONFIGURACIÓN SMTP ---
-const transporter = nodemailer.createTransport({
-  host: "128brand-com.correoseguro.dinaserver.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_EMAIL,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+// --- CONFIGURACIÓN SMTP ROBUSTA ---
+const getSmtpConfig = () => {
+    // Intenta obtener de functions.config() (Legacy/Production)
+    const config = functions.config();
+    // Intenta obtener de process.env (Local/Dotenv)
+    const email = process.env.SMTP_EMAIL || (config.smtp && config.smtp.email);
+    const password = process.env.SMTP_PASSWORD || (config.smtp && config.smtp.password);
+    return { email, password };
+};
+
+const { email: smtpEmail, password: smtpPassword } = getSmtpConfig();
+
+// Inicializar transporter
+let transporter: nodemailer.Transporter | null = null;
+
+if (smtpEmail && smtpPassword) {
+    transporter = nodemailer.createTransport({
+        host: "128brand-com.correoseguro.dinaserver.com",
+        port: 465,
+        secure: true,
+        auth: {
+            user: smtpEmail,
+            pass: smtpPassword,
+        },
+    });
+} else {
+    console.warn("⚠️ SMTP Credentials missing. Emails will not be sent.");
+}
 
 const DASHBOARD_URL = "https://128brand.com";
 
-// --- PLANTILLAS HTML (MEJORADAS PARA EMAIL) ---
+// --- PLANTILLAS HTML ---
 const TEMPLATES = {
   welcome: `
 <!DOCTYPE html>
@@ -187,8 +207,12 @@ const TEMPLATES = {
 
 // --- HELPERS ---
 const sendEmail = async (to: string, subject: string, html: string) => {
+  if (!transporter) {
+      throw new Error("Servidor de correo no configurado (Faltan credenciales SMTP). Verifica environment o functions.config().");
+  }
+
   const mailOptions = {
-    from: '"128 Brand" <hola@128brand.com>',
+    from: `"128 Brand" <${smtpEmail}>`,
     to,
     subject,
     html,
@@ -197,7 +221,6 @@ const sendEmail = async (to: string, subject: string, html: string) => {
 };
 
 // 1. TRIGGER: NUEVO USUARIO REGISTRADO
-// Envía el email de bienvenida
 export const onUserCreated = functions.firestore
   .document("users/{userId}")
   .onCreate(async (snap, context) => {
@@ -205,10 +228,7 @@ export const onUserCreated = functions.firestore
     const email = data.email;
     const name = data.name || "Cliente";
 
-    if (!email) {
-        console.log("No email found for user");
-        return null;
-    }
+    if (!email) return null;
 
     const html = TEMPLATES.welcome
         .replace("{{name}}", name)
@@ -216,7 +236,6 @@ export const onUserCreated = functions.firestore
 
     try {
         await sendEmail(email, "Bienvenido a 128 Brand | Tu cuenta ha sido creada", html);
-        console.log(`Welcome email sent to ${email}`);
     } catch (error) {
         console.error("Error sending welcome email:", error);
     }
@@ -224,33 +243,24 @@ export const onUserCreated = functions.firestore
   });
 
 // 2. TRIGGER: NUEVA LICENCIA (TRIAL)
-// Envía el email con el token cuando se crea una licencia
 export const onLicenseCreated = functions.firestore
   .document("licenses/{licenseId}")
   .onCreate(async (snap, context) => {
     const data = snap.data();
     const token = context.params.licenseId;
     const userId = data.userId;
-    const userEmail = data.userEmail; // Asegurarse de guardar esto en el frontend
+    const userEmail = data.userEmail;
 
-    // Si no tenemos el email en la licencia, intentamos buscarlo en el usuario
     let emailToUse = userEmail;
     if (!emailToUse) {
         const userSnap = await db.collection("users").doc(userId).get();
-        if (userSnap.exists) {
-            emailToUse = userSnap.data()?.email;
-        }
+        if (userSnap.exists) emailToUse = userSnap.data()?.email;
     }
 
-    if (!emailToUse) {
-        console.log("No email found for license");
-        return null;
-    }
+    if (!emailToUse) return null;
 
-    // Formatear fecha
     let expiration = "7 días";
     if (data.trialEndsAt) {
-        // data.trialEndsAt puede ser Timestamp o string
         const dateObj = data.trialEndsAt.toDate ? data.trialEndsAt.toDate() : new Date(data.trialEndsAt);
         expiration = dateObj.toLocaleDateString("es-ES", { day: 'numeric', month: 'long', year: 'numeric' });
     }
@@ -262,7 +272,6 @@ export const onLicenseCreated = functions.firestore
 
     try {
         await sendEmail(emailToUse, "🚀 Tu Instancia de IA está lista", html);
-        console.log(`Trial email sent to ${emailToUse}`);
     } catch (error) {
         console.error("Error sending trial email:", error);
     }
@@ -270,21 +279,17 @@ export const onLicenseCreated = functions.firestore
   });
 
 // 3. TRIGGER: ACTUALIZACIÓN A PREMIUM
-// Envía el email cuando el estado de pago cambia
 export const onLicenseUpdated = functions.firestore
     .document("licenses/{licenseId}")
     .onUpdate(async (change, context) => {
         const newData = change.after.data();
         const oldData = change.before.data();
 
-        // Detectar cambio a Premium (si antes tenía trialEndsAt y ahora es null/undefined, o paymentStatus cambió a paid)
         const becamePremium = oldData.trialEndsAt && !newData.trialEndsAt;
         const paidConfirmed = newData.paymentStatus === 'paid' && oldData.paymentStatus !== 'paid';
 
         if (becamePremium || paidConfirmed) {
              const userId = newData.userId;
-             
-             // Obtener email
              let emailToUse = newData.userEmail;
              if (!emailToUse) {
                  const userSnap = await db.collection("users").doc(userId).get();
@@ -294,7 +299,7 @@ export const onLicenseUpdated = functions.firestore
              if (emailToUse) {
                 const html = TEMPLATES.premium
                     .replace("{{amount}}", "350€ + IVA")
-                    .replace("{{transaction_id}}", context.params.licenseId); // Usamos el token como ID de ref por simplicidad
+                    .replace("{{transaction_id}}", context.params.licenseId);
 
                 await sendEmail(emailToUse, "💎 Confirmación de Servicio Premium", html);
              }
@@ -306,7 +311,6 @@ export const onLicenseUpdated = functions.firestore
 export const sendContactEmail = functions.https.onCall(async (data, context) => {
     const { name, company, email, message } = data;
 
-    // Validación básica
     if (!name || !email || !message) {
         throw new functions.https.HttpsError('invalid-argument', 'Faltan datos requeridos.');
     }
@@ -323,11 +327,12 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
     `;
 
     try {
-        // Enviar email a TI MISMO (hola@128brand.com)
-        await sendEmail("hola@128brand.com", `Nuevo Lead Web: ${name}`, html);
+        const targetEmail = process.env.CONTACT_TARGET_EMAIL || "hola@128brand.com";
+        await sendEmail(targetEmail, `Nuevo Lead Web: ${name}`, html);
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error enviando formulario:", error);
-        throw new functions.https.HttpsError('internal', 'Error al enviar el email.');
+        // Retornamos el mensaje real del error SMTP para debugging (Solo desarrollo)
+        throw new functions.https.HttpsError('internal', `Error SMTP: ${error.message || 'Error desconocido'}`);
     }
 });
