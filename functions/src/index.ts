@@ -6,35 +6,32 @@ import * as nodemailer from "nodemailer";
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }
-// (Línea de db borrada para evitar error TS6133)
 
 // --- CONFIGURACIÓN SMTP ---
 // Lee las variables del archivo .env
 const email = process.env.SMTP_EMAIL;
 const password = process.env.SMTP_PASSWORD;
 
-// Inicializar transporter
-let transporter: nodemailer.Transporter | null = null;
-
-if (email && password) {
-    transporter = nodemailer.createTransport({
-        host: "128brand-com.correoseguro.dinaserver.com",
-        port: 465,
-        secure: true,
-        auth: {
-            user: email,
-            pass: password,
-        },
-    });
-} else {
-    console.warn("⚠️ Faltan credenciales SMTP en el archivo .env");
-}
-
 const DASHBOARD_URL = "https://128brand.com";
 
 // --- HELPERS ---
-const sendEmail = async (to: string, subject: string, html: string) => {
-  if (!transporter) throw new Error("Servidor de correo no configurado.");
+// Crear el transporter DENTRO de la función para asegurar que lee las variables frescas
+const createTransporter = () => {
+    if (!email || !password) {
+        console.error("❌ ERROR CRÍTICO: No se han leído las variables de entorno (.env). Email:", email);
+        return null;
+    }
+    return nodemailer.createTransport({
+        host: "128brand-com.correoseguro.dinaserver.com",
+        port: 465,
+        secure: true,
+        auth: { user: email, pass: password },
+    });
+};
+
+const sendEmailHelper = async (to: string, subject: string, html: string) => {
+  const transporter = createTransporter();
+  if (!transporter) throw new Error("Servidor de correo no configurado (Variables de entorno faltantes).");
   
   return transporter.sendMail({
     from: `"128 Brand" <${email}>`,
@@ -54,7 +51,7 @@ export const onUserCreated = functions.firestore
     const html = `<h1>Bienvenido a 128 Brand</h1><p>Hola ${data.name || 'Cliente'}, tu cuenta ha sido creada.</p><a href="${DASHBOARD_URL}">Ir al Dashboard</a>`;
     
     try {
-        await sendEmail(data.email, "Bienvenido a 128 Brand", html);
+        await sendEmailHelper(data.email, "Bienvenido a 128 Brand", html);
     } catch (error) {
         console.error("Error welcome email:", error);
     }
@@ -72,7 +69,7 @@ export const onLicenseCreated = functions.firestore
     const html = `<h1>Licencia Activada</h1><p>Token: <b>${context.params.licenseId}</b></p>`;
     
     try {
-        await sendEmail(userEmail, "🚀 Tu Instancia de IA está lista", html);
+        await sendEmailHelper(userEmail, "🚀 Tu Instancia de IA está lista", html);
     } catch (error) {
         console.error("Error trial email:", error);
     }
@@ -88,46 +85,64 @@ export const onLicenseUpdated = functions.firestore
         
         if (oldData.trialEndsAt && !newData.trialEndsAt) {
              if (newData.userEmail) {
-                await sendEmail(newData.userEmail, "💎 Eres Premium", "<h1>Pago Confirmado</h1><p>Gracias por confiar en 128 Brand.</p>");
+                await sendEmailHelper(newData.userEmail, "💎 Eres Premium", "<h1>Pago Confirmado</h1><p>Gracias por confiar en 128 Brand.</p>");
              }
         }
         return null;
     });
 
-// 4. FUNCION HTTPS: FORMULARIO DE CONTACTO
+// 4. FUNCION HTTPS: FORMULARIO DE CONTACTO (DEBUG VERSION)
 export const sendContactEmail = functions.https.onCall(async (data, context) => {
+    console.log("1. Función sendContactEmail iniciada.");
+    console.log("   - Datos recibidos:", JSON.stringify(data));
+
     const { name, company, email: clientEmail, message } = data;
 
+    // Validación
     if (!name || !clientEmail || !message) {
+        console.warn("2. Validación fallida: Faltan datos.");
         throw new functions.https.HttpsError('invalid-argument', 'Faltan datos requeridos.');
     }
 
+    const transporter = createTransporter();
+    if (!transporter) {
+        throw new functions.https.HttpsError('internal', 'Error de configuración del servidor (Credenciales).');
+    }
+
+    // Verificar conexión SMTP antes de enviar
+    try {
+        console.log("3. Verificando conexión con Dinahosting...");
+        await transporter.verify();
+        console.log("4. Conexión SMTP: OK ✅");
+    } catch (error: any) {
+        console.error("❌ ERROR CONEXIÓN SMTP:", error);
+        throw new functions.https.HttpsError('internal', `No se pudo conectar al correo: ${error.message}`);
+    }
+
     const html = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-        <h2 style="color: #7c3aed;">Nuevo Mensaje Web</h2>
-        <hr style="border: 1px solid #eee;">
-        <p><strong>De:</strong> ${name} (<a href="mailto:${clientEmail}">${clientEmail}</a>)</p>
-        <p><strong>Empresa:</strong> ${company || 'No indicada'}</p>
-        <br>
-        <p style="background: #f4f4f5; padding: 15px; border-radius: 8px; border-left: 4px solid #7c3aed;">${message}</p>
+    <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Nuevo Mensaje de ${name}</h2>
+        <p>Email Cliente: ${clientEmail}</p>
+        <p>Mensaje: ${message}</p>
     </div>
     `;
 
     try {
-        if (!transporter) throw new functions.https.HttpsError('internal', 'Servidor de correo no listo');
-
-        await transporter.sendMail({
-            from: `"Formulario Web" <${email}>`, 
-            to: "hola@128brand.com",             // Intento al corporativo
-            cc: "ivancorebrand@gmail.com",       // <--- COPIA DE SEGURIDAD (Esto asegura que te enteres)
-            replyTo: clientEmail,                
-            subject: `🔔 Lead: ${name} - ${company || 'Web'}`,
+        console.log("5. Intentando enviar email...");
+        const info = await transporter.sendMail({
+            from: `"Formulario Web" <${email}>`,
+            to: "hola@128brand.com",       // <--- Destino Corporativo
+            cc: "ivancorebrand@gmail.com", // <--- Copia Seguridad
+            replyTo: clientEmail,
+            subject: `🔔 Lead: ${name}`,
             html: html
         });
 
-        return { success: true };
+        console.log("6. Email enviado correctamente. ID:", info.messageId);
+        return { success: true, messageId: info.messageId };
+
     } catch (error: any) {
-        console.error("❌ Error enviando formulario:", error);
-        throw new functions.https.HttpsError('internal', `Error SMTP: ${error.message}`);
+        console.error("❌ ERROR AL ENVIAR:", error);
+        throw new functions.https.HttpsError('internal', `Error enviando: ${error.message}`);
     }
 });
