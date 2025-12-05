@@ -7,15 +7,13 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // --- CONFIGURACIÓN SMTP ---
-// ¡¡IMPORTANTE: AQUÍ YA NO DEBE HABER NINGÚN "const config = ..."!!
-
 const transporter = nodemailer.createTransport({
   host: "128brand-com.correoseguro.dinaserver.com",
   port: 465,
   secure: true,
   auth: {
-    user: process.env.SMTP_EMAIL,     // Solo process.env
-    pass: process.env.SMTP_PASSWORD,  // Solo process.env
+    user: process.env.SMTP_EMAIL,
+    pass: process.env.SMTP_PASSWORD,
   },
 });
 
@@ -186,153 +184,119 @@ const TEMPLATES = {
 </html>`
 };
 
-// --- HELPER FUNCTIONS ---
-
-const replaceTemplate = (template: string, data: Record<string, string>) => {
-  let output = template;
-  for (const key in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
-      output = output.replace(new RegExp(`{{${key}}}`, "g"), data[key]);
-    }
-  }
-  return output;
-};
-
+// --- HELPERS ---
 const sendEmail = async (to: string, subject: string, html: string) => {
   const mailOptions = {
-    from: '"128 Brand Platform" <no-reply@128brand.com>',
+    from: '"128 Brand" <hola@128brand.com>',
     to,
     subject,
     html,
   };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${to}`);
-  } catch (error) {
-    console.error("Error sending email:", error);
-  }
+  return transporter.sendMail(mailOptions);
 };
 
-// --- TRIGGERS ---
-
-// A. Bienvenida (Registro de Usuario)
-export const sendWelcomeEmail = functions.firestore
+// 1. TRIGGER: NUEVO USUARIO REGISTRADO
+// Envía el email de bienvenida
+export const onUserCreated = functions.firestore
   .document("users/{userId}")
   .onCreate(async (snap, context) => {
-    const userData = snap.data();
-    const email = userData.email;
-    const name = userData.name || "Usuario";
+    const data = snap.data();
+    const email = data.email;
+    const name = data.name || "Cliente";
 
     if (!email) {
         console.log("No email found for user");
-        return;
+        return null;
     }
 
-    const html = replaceTemplate(TEMPLATES.welcome, {
-      name: name,
-      dashboard_url: DASHBOARD_URL
-    });
-
-    await sendEmail(email, "Bienvenido a 128 Brand | Tu cuenta ha sido activada", html);
-  });
-
-// B. Activación de Prueba (Nueva Licencia)
-export const sendTrialActiveEmail = functions.firestore
-  .document("licenses/{licenseId}")
-  .onCreate(async (snap, context) => {
-    const licenseData = snap.data();
-    const email = licenseData.userEmail;
-    
-    // Solo enviar si es un plan TRIAL
-    if (licenseData.plan !== 'trial' || !email) return;
-
-    const token = context.params.licenseId; 
-    
-    let expiration = "7 días";
-    if (licenseData.trialEndsAt) {
-       const date = licenseData.trialEndsAt.toDate ? licenseData.trialEndsAt.toDate() : new Date(licenseData.trialEndsAt);
-       expiration = date.toLocaleDateString("es-ES", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    }
-
-    const html = replaceTemplate(TEMPLATES.trial, {
-      token: token,
-      expiration_date: expiration,
-      product_name: licenseData.productId || "Agente IA",
-      dashboard_url: DASHBOARD_URL
-    });
-
-    await sendEmail(email, "🔑 Token de Activación: Tu Agente 128 está listo", html);
-  });
-
-// C. Confirmación Premium (Pago realizado)
-export const sendPremiumSuccessEmail = functions.firestore
-  .document("licenses/{licenseId}")
-  .onUpdate(async (change, context) => {
-    const before = change.before.data();
-    const after = change.after.data();
-
-    if (before.paymentStatus !== 'paid' && after.paymentStatus === 'paid') {
-        const email = after.userEmail;
-        if (!email) return;
-
-        const html = replaceTemplate(TEMPLATES.premium, {
-            product_name: after.productId || "Servicio Premium",
-            amount: "350€ + IVA",
-            transaction_id: context.eventId,
-        });
-
-        await sendEmail(email, "💎 Confirmación de Pago - 128 Brand Premium", html);
-    }
-  });
-
-// D. Aviso de Expiración (Cron Job diario)
-export const checkExpiringTrials = functions.pubsub
-  .schedule("every 24 hours")
-  .onRun(async (context) => {
-    const now = new Date();
-    const tomorrowStart = new Date(now);
-    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-    tomorrowStart.setHours(0, 0, 0, 0);
-
-    const tomorrowEnd = new Date(tomorrowStart);
-    tomorrowEnd.setHours(23, 59, 59, 999);
-
-    console.log(`Checking trials expiring between ${tomorrowStart.toISOString()} and ${tomorrowEnd.toISOString()}`);
+    const html = TEMPLATES.welcome
+        .replace("{{name}}", name)
+        .replace("{{dashboard_url}}", DASHBOARD_URL);
 
     try {
-        const snapshot = await db.collection("licenses")
-            .where("plan", "==", "trial")
-            .where("status", "==", "active")
-            .where("trialEndsAt", ">=", admin.firestore.Timestamp.fromDate(tomorrowStart))
-            .where("trialEndsAt", "<=", admin.firestore.Timestamp.fromDate(tomorrowEnd))
-            .get();
-
-        if (snapshot.empty) {
-            console.log("No expiring trials found for tomorrow.");
-            return;
-        }
-
-        const emailPromises: Promise<void>[] = [];
-
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const email = data.userEmail;
-            
-            if (email) {
-                const html = replaceTemplate(TEMPLATES.urgency, {
-                    product_name: data.productId || "Agente IA",
-                    upgrade_url: DASHBOARD_URL
-                });
-                
-                emailPromises.push(sendEmail(email, "⏳ URGENTE: Tu Agente se detiene mañana", html));
-            }
-        });
-
-        await Promise.all(emailPromises);
-        console.log(`Sent urgency emails to ${emailPromises.length} users.`);
-
+        await sendEmail(email, "Bienvenido a 128 Brand | Tu cuenta ha sido creada", html);
+        console.log(`Welcome email sent to ${email}`);
     } catch (error) {
-        console.error("Error in checkExpiringTrials cron:", error);
+        console.error("Error sending welcome email:", error);
     }
+    return null;
   });
+
+// 2. TRIGGER: NUEVA LICENCIA (TRIAL)
+// Envía el email con el token cuando se crea una licencia
+export const onLicenseCreated = functions.firestore
+  .document("licenses/{licenseId}")
+  .onCreate(async (snap, context) => {
+    const data = snap.data();
+    const token = context.params.licenseId;
+    const userId = data.userId;
+    const userEmail = data.userEmail; // Asegurarse de guardar esto en el frontend
+
+    // Si no tenemos el email en la licencia, intentamos buscarlo en el usuario
+    let emailToUse = userEmail;
+    if (!emailToUse) {
+        const userSnap = await db.collection("users").doc(userId).get();
+        if (userSnap.exists) {
+            emailToUse = userSnap.data()?.email;
+        }
+    }
+
+    if (!emailToUse) {
+        console.log("No email found for license");
+        return null;
+    }
+
+    // Formatear fecha
+    let expiration = "7 días";
+    if (data.trialEndsAt) {
+        // data.trialEndsAt puede ser Timestamp o string
+        const dateObj = data.trialEndsAt.toDate ? data.trialEndsAt.toDate() : new Date(data.trialEndsAt);
+        expiration = dateObj.toLocaleDateString("es-ES", { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    const html = TEMPLATES.trial
+        .replace("{{token}}", token)
+        .replace("{{expiration_date}}", expiration)
+        .replace("{{dashboard_url}}", DASHBOARD_URL);
+
+    try {
+        await sendEmail(emailToUse, "🚀 Tu Instancia de IA está lista", html);
+        console.log(`Trial email sent to ${emailToUse}`);
+    } catch (error) {
+        console.error("Error sending trial email:", error);
+    }
+    return null;
+  });
+
+// 3. TRIGGER: ACTUALIZACIÓN A PREMIUM
+// Envía el email cuando el estado de pago cambia
+export const onLicenseUpdated = functions.firestore
+    .document("licenses/{licenseId}")
+    .onUpdate(async (change, context) => {
+        const newData = change.after.data();
+        const oldData = change.before.data();
+
+        // Detectar cambio a Premium (si antes tenía trialEndsAt y ahora es null/undefined, o paymentStatus cambió a paid)
+        const becamePremium = oldData.trialEndsAt && !newData.trialEndsAt;
+        const paidConfirmed = newData.paymentStatus === 'paid' && oldData.paymentStatus !== 'paid';
+
+        if (becamePremium || paidConfirmed) {
+             const userId = newData.userId;
+             
+             // Obtener email
+             let emailToUse = newData.userEmail;
+             if (!emailToUse) {
+                 const userSnap = await db.collection("users").doc(userId).get();
+                 if (userSnap.exists) emailToUse = userSnap.data()?.email;
+             }
+
+             if (emailToUse) {
+                const html = TEMPLATES.premium
+                    .replace("{{amount}}", "350€ + IVA")
+                    .replace("{{transaction_id}}", context.params.licenseId); // Usamos el token como ID de ref por simplicidad
+
+                await sendEmail(emailToUse, "💎 Confirmación de Servicio Premium", html);
+             }
+        }
+        return null;
+    });
