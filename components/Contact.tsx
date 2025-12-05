@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { Mail, MapPin, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { functions } from '../services/firebase';
+import { httpsCallable } from 'firebase/functions';
 
 export const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -17,15 +19,15 @@ export const Contact: React.FC = () => {
 
     setStatus('submitting');
 
-    // Simulate Email Sending Delay
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      // Here you would typically call your backend: await fetch('/api/send-email', { body: JSON.stringify(formData) ... })
+      const sendEmailFn = httpsCallable(functions, 'sendContactEmail');
+      await sendEmailFn(formData);
+      
       console.log('Email enviado:', formData);
       setStatus('success');
       setFormData({ name: '', company: '', email: '', message: '' });
     } catch (error) {
-      console.error(error);
+      console.error("Error al enviar:", error);
       setStatus('error');
     }
   };

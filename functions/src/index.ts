@@ -1,3 +1,4 @@
+
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import * as nodemailer from "nodemailer";
@@ -300,3 +301,33 @@ export const onLicenseUpdated = functions.firestore
         }
         return null;
     });
+
+// 4. FUNCION HTTPS: FORMULARIO DE CONTACTO
+export const sendContactEmail = functions.https.onCall(async (data, context) => {
+    const { name, company, email, message } = data;
+
+    // Validación básica
+    if (!name || !email || !message) {
+        throw new functions.https.HttpsError('invalid-argument', 'Faltan datos requeridos.');
+    }
+
+    const html = `
+    <h2>Nuevo Mensaje de Contacto Web</h2>
+    <p><strong>Nombre:</strong> ${name}</p>
+    <p><strong>Empresa:</strong> ${company || 'No especificada'}</p>
+    <p><strong>Email:</strong> ${email}</p>
+    <p><strong>Mensaje:</strong></p>
+    <blockquote style="background: #f9f9f9; padding: 10px; border-left: 5px solid #7c3aed;">
+        ${message}
+    </blockquote>
+    `;
+
+    try {
+        // Enviar email a TI MISMO (hola@128brand.com)
+        await sendEmail("hola@128brand.com", `Nuevo Lead Web: ${name}`, html);
+        return { success: true };
+    } catch (error) {
+        console.error("Error enviando formulario:", error);
+        throw new functions.https.HttpsError('internal', 'Error al enviar el email.');
+    }
+});
