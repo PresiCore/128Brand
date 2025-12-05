@@ -118,8 +118,9 @@ export const sendContactEmail = functions.https.onCall(async (data, context) => 
 
         await transporter.sendMail({
             from: `"Formulario Web" <${email}>`, 
-            to: "hola@128brand.com",             // <--- Destino: Tu correo corporativo
-            replyTo: clientEmail,                // <--- Responder a: El cliente
+            to: "hola@128brand.com",             // Intento al corporativo
+            cc: "ivancorebrand@gmail.com",       // <--- COPIA DE SEGURIDAD (Esto asegura que te enteres)
+            replyTo: clientEmail,                
             subject: `🔔 Lead: ${name} - ${company || 'Web'}`,
             html: html
         });
