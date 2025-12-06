@@ -32,13 +32,17 @@ export const SAAS_PRODUCTS: SaasProduct[] = [
   {
     id: 'ai-growth-bot',
     name: 'Agente Comercial 128',
-    description: 'Agente de Inteligencia Artificial para tu sitio web. Tu mejor vendedor, disponible 24/7. Interactúa con los visitantes, cualifica leads y cierra ventas automáticamente. Toda la configuración y gestión del embudo se realiza en nuestra plataforma dedicada.',
+    description: 'Agente de Inteligencia Artificial...',
     price: '350€ + IVA / mes',
     category: 'Chatbot',
     status: 'available',
     iconName: 'Bot',
     demoId: 'sdr',
-    serviceUrl: "https://agentecomercial128.web.app"
+    // CAMBIO AQUÍ: Usa tu URL actual o una de prueba por ahora
+    // Si estás en local, puedes poner "http://localhost:3000" para probar que abre.
+    // O si quieres simular que funciona, pon la misma URL de tu app desplegada.
+    serviceUrl: "https://brand-176eb.web.app" 
+    // serviceUrl: "https://agentecomercial128.web.app"  <-- ESTA ES LA QUE FALLA PORQUE NO ESTÁ DESPLEGADA
   }
 ];
 
