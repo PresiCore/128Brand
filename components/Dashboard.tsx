@@ -655,7 +655,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                                         <button onClick={() => handleProductClick(product)} className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm font-bold flex items-center justify-center border border-green-500/20"><CheckCircle2 className="w-4 h-4 mr-2" /> Gestionar</button>
                                                     ) : (
                                                         <button onClick={() => handleProductClick(product)} className="px-4 py-2 bg-brand-accent text-white rounded-lg text-sm font-bold hover:bg-brand-accent/90 transition-colors flex items-center justify-center shadow-lg shadow-brand-accent/20">
-                                                            <Gift className="w-4 h-4 mr-2" /> {hasTried ? 'Ver Planes' : 'Probar Gratis'}
+                                                            <Gift className="w-4 h-4 mr-2" /> {hasTried ? 'Contratar Servicio' : 'Probar Gratis'}
                                                         </button>
                                                     )}
                                                 </div>

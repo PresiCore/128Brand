@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -13,7 +14,8 @@ const firebaseConfig = {
   measurementId: "G-YD20MNX3CC"
 };
 
-// Initialize Firebase (Singleton pattern to prevent re-initialization)
+// Initialize Firebase
+// Using getApps to prevent re-initialization during hot reloads or strict mode
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const db = getFirestore(app);

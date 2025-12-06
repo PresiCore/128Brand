@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -139,7 +140,7 @@ const CheckoutForm: React.FC<{ product: SaasProduct; onSuccess: () => void }> = 
     );
 };
 
-export const PaymentGateway: React.FC<PaymentGatewayProps> = ({ product, merchantName = "128 Brand LLC", onSuccess, onCancel }) => {
+export const PaymentGateway: React.FC<PaymentGatewayProps> = ({ product, merchantName = "128 Brand", onSuccess, onCancel }) => {
     const [success, setSuccess] = useState(false);
 
     const handleSuccess = () => {

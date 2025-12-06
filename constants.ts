@@ -32,7 +32,7 @@ export const SAAS_PRODUCTS: SaasProduct[] = [
   {
     id: 'ai-growth-bot',
     name: 'Agente Comercial 128',
-    description: 'Agente de Inteligencia Artificial...',
+    description: 'Agente de Inteligencia Artificial para tu sitio web. Tu mejor vendedor, disponible 24/7. Interactúa con los visitantes, cualifica leads y cierra ventas automáticamente. Toda la configuración y gestión del embudo se realiza en nuestra plataforma dedicada.',
     price: '350€ + IVA / mes',
     category: 'Chatbot',
     status: 'available',
