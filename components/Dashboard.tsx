@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { SaasProduct } from '../types';
 import { db } from '../services/firebase';
-import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc, arrayUnion } from "firebase/firestore";
 import { SAAS_PRODUCTS } from '../constants';
 import { PaymentGateway } from './PaymentGateway';
 
@@ -462,6 +462,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             alert("Error: No se detectó un email válido en tu sesión. Por favor, cierra sesión y vuelve a entrar con Google.");
             return;
         }
+
+        // --- VERIFICACIÓN HISTORIAL DE PRUEBAS ---
+        try {
+            const userRef = doc(db, "users", userId);
+            const userSnap = await getDoc(userRef);
+            
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                if (userData.triedProducts && userData.triedProducts.includes(selectedProduct.id)) {
+                    alert("🚫 Ya has disfrutado de la prueba gratuita de 7 días para este servicio.\n\nPara continuar usándolo, por favor actualiza a la versión Premium.");
+                    setViewMode('upgrade'); 
+                    return; 
+                }
+            }
+        } catch (error) {
+            console.error("Error verificando historial de pruebas:", error);
+        }
     
         setIsProvisioning(true);
     
@@ -522,6 +539,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 });
             } catch (e) {
                 console.error("Warning: Error guardando backup local (no crítico)", e);
+            }
+
+            // --- REGISTRO DE PRUEBA EN PERFIL USUARIO ---
+            try {
+                const userRef = doc(db, "users", userId);
+                await updateDoc(userRef, {
+                    triedProducts: arrayUnion(selectedProduct.id)
+                });
+            } catch (e) {
+                console.error("No se pudo guardar el historial de prueba", e);
             }
     
             // Pequeña espera estética para que la animación se vea bien
