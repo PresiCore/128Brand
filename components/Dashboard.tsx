@@ -392,6 +392,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     const [selectedProduct, setSelectedProduct] = useState<SaasProduct | null>(null);
     const [viewMode, setViewMode] = useState<'dashboard' | 'offer' | 'manage' | 'upgrade'>('dashboard');
     const [isProvisioning, setIsProvisioning] = useState(false);
+    const [triedProductIds, setTriedProductIds] = useState<string[]>([]);
     
     const [isOffline, setIsOffline] = useState(true);
 
@@ -430,6 +431,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         initFirestore();
     }, [userId, isAdminDemo, isClientDemo]);
 
+    // Cargar historial de productos probados
+    useEffect(() => {
+        const fetchTriedProducts = async () => {
+            if (!user || isAdminDemo || isClientDemo) {
+                if (isAdminDemo || isClientDemo) setTriedProductIds([]);
+                return;
+            }
+            try {
+                const userRef = doc(db, "users", userId);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    const userData = userSnap.data();
+                    setTriedProductIds(userData.triedProducts || []);
+                }
+            } catch (error) {
+                console.error("Error al cargar historial del usuario:", error);
+            }
+        };
+        fetchTriedProducts();
+    }, [user, userId, isAdminDemo, isClientDemo]);
+
     // Handle clicking a product card
     const handleProductClick = (product: SaasProduct) => {
         const ownedProduct = myServices.find(s => s.id === product.id);
@@ -456,42 +478,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     const activateTrial = async () => {
         if (!selectedProduct) return;
         
-        // VALIDACIÓN 1: Asegurar que tenemos el email del usuario (Google a veces tarda en cargarlo)
         const userEmail = user?.email;
         if (!userEmail) {
             alert("Error: No se detectó un email válido en tu sesión. Por favor, cierra sesión y vuelve a entrar con Google.");
             return;
         }
+    
+        setIsProvisioning(true);
 
-        // --- VERIFICACIÓN HISTORIAL DE PRUEBAS ---
         try {
+            // --- STEP 1: VERIFY & CREATE USER RECORD ---
             const userRef = doc(db, "users", userId);
             const userSnap = await getDoc(userRef);
             
-            if (userSnap.exists()) {
+            // Si el documento del usuario no existe, crearlo inmediatamente
+            if (!userSnap.exists()) {
+                await setDoc(userRef, {
+                    uid: userId,
+                    email: userEmail,
+                    role: 'client',
+                    triedProducts: [] // Inicializar array vacío
+                });
+            } else {
+                // Si existe, verificar si ya ha probado este producto
                 const userData = userSnap.data();
                 if (userData.triedProducts && userData.triedProducts.includes(selectedProduct.id)) {
+                    setIsProvisioning(false);
                     alert("🚫 Ya has disfrutado de la prueba gratuita de 7 días para este servicio.\n\nPara continuar usándolo, por favor actualiza a la versión Premium.");
                     setViewMode('upgrade'); 
-                    return; 
+                    return; // DETENER AQUÍ
                 }
             }
-        } catch (error) {
-            console.error("Error verificando historial de pruebas:", error);
-        }
-    
-        setIsProvisioning(true);
-    
-        // Generamos el Token
-        const mockToken = `128-${userId.substring(0, 5)}-${Date.now().toString(36)}`;
-        console.log("🚀 Iniciando transacción segura para:", mockToken);
-    
-        try {
-            // --- PASO CRÍTICO: LLAMADA BLOQUEANTE AL SAAS ---
-            // Esperamos (await) a que el servidor responda ANTES de seguir.
-            // Para el modo 'functional', simulamos si el fetch falla para no bloquear el negocio
+
+            // --- STEP 2: GENERATE TOKEN ---
+            const mockToken = `128-${userId.substring(0, 5)}-${Date.now().toString(36)}`;
+            console.log("🚀 Starting secure transaction for:", mockToken);
+        
+            // --- STEP 3: CALL SAAS API (Optional/Background) ---
             try {
-                const response = await fetch(SAAS_API_URL, {
+                await fetch(SAAS_API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -504,15 +529,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                         expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
                     })
                 });
-                
-                if (!response.ok) {
-                    console.warn("SaaS Endpoint Warning: Backend not reachable, proceeding with frontend-only provisioning.");
-                }
             } catch (fetchError) {
                 console.warn("Provisioning locally due to network/cors.");
             }
     
-            // AHORA SÍ: Guardamos en local y mostramos al usuario
+            // --- STEP 4: UPDATE LOCAL STATE ---
             const newService = { 
                 ...selectedProduct, 
                 status: 'active', 
@@ -524,38 +545,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             const updatedServices = [...myServices, newService];
             setMyServices(updatedServices);
             localStorage.setItem(`services_${userId}`, JSON.stringify(updatedServices));
+            // Update tried products locally
+            setTriedProductIds(prev => [...prev, selectedProduct.id]);
     
-            // Guardamos copia en la Agencia (Backup)
-            try {
-                // Standard SDK setDoc
-                await setDoc(doc(db, "licenses", mockToken), {
-                    userId: userId,
-                    productId: selectedProduct.id,
-                    status: 'active',
-                    createdAt: new Date(),
-                    trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                    plan: 'trial',
-                    userEmail: userEmail // Guardamos también el email por si acaso
-                });
-            } catch (e) {
-                console.error("Warning: Error guardando backup local (no crítico)", e);
-            }
+            // --- STEP 5: SAVE LICENSE TO DB ---
+            await setDoc(doc(db, "licenses", mockToken), {
+                userId: userId,
+                productId: selectedProduct.id,
+                status: 'active',
+                createdAt: new Date(),
+                trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                plan: 'trial',
+                userEmail: userEmail
+            });
 
-            // --- REGISTRO DE PRUEBA EN PERFIL USUARIO (CORREGIDO) ---
-            try {
-                const userRef = doc(db, "users", userId);
-                // Usamos setDoc con merge: true para CREAR el documento si no existe (vital para logins de Google)
-                await setDoc(userRef, {
-                    uid: userId,           // Aseguramos que el ID esté
-                    email: userEmail,      // Guardamos el email
-                    role: 'client',        // Rol por defecto
-                    triedProducts: arrayUnion(selectedProduct.id) // Añadimos el producto a la lista negra
-                }, { merge: true });
-            } catch (e) {
-                console.error("No se pudo guardar el historial de prueba", e);
-            }
+            // --- STEP 6: PERMANENTLY MARK AS TRIED ---
+            // Usamos setDoc con merge: true para mayor seguridad
+            await setDoc(userRef, {
+                triedProducts: arrayUnion(selectedProduct.id)
+            }, { merge: true });
     
-            // Pequeña espera estética para que la animación se vea bien
+            // Success Animation Delay
             await new Promise(resolve => setTimeout(resolve, 2000));
             
             setIsProvisioning(false);
@@ -563,12 +573,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             setViewMode('manage');
     
         } catch (error: any) {
-            // GESTIÓN DE ERRORES: Si algo falló, NO damos el token.
-            console.error("❌ ERROR DE TRANSACCIÓN:", error);
+            console.error("❌ TRANSACTION ERROR:", error);
             setIsProvisioning(false);
-            
-            // Mensaje amigable pero técnico para ti
-            alert(`No se pudo activar la licencia. \n\nCausa: ${error.message || 'Error de conexión con el servidor de licencias'}.\n\nPor favor, verifica tu conexión o contacta a soporte.`);
+            alert(`No se pudo activar la licencia: ${error.message || 'Error de conexión'}`);
         }
     };
 
@@ -804,6 +811,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                 {marketplaceProducts.map((product) => {
                                     const isOwned = myServices.some(s => s.name === product.name);
                                     const Icon = IconMap[product.iconName] || Server;
+                                    const hasTried = triedProductIds.includes(product.id);
+
                                     return (
                                         <div key={product.id} className="bg-[#121212] border border-white/5 rounded-2xl p-6 hover:border-brand-accent/30 transition-all group flex flex-col">
                                             <div className="flex justify-between items-start mb-6">
@@ -812,22 +821,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                             </div>
                                             
                                             {/* Countdown in card */}
-                                            <div className="mb-4 bg-red-500/10 border border-red-500/20 rounded-lg p-2 flex items-center justify-center gap-2">
-                                                <Timer className="w-3 h-3 text-red-500 animate-pulse"/>
-                                                <span className="text-xs text-red-400 font-bold uppercase tracking-wide">Oferta 72h</span>
-                                            </div>
+                                            {!hasTried && (
+                                                <div className="mb-4 bg-red-500/10 border border-red-500/20 rounded-lg p-2 flex items-center justify-center gap-2">
+                                                    <Timer className="w-3 h-3 text-red-500 animate-pulse"/>
+                                                    <span className="text-xs text-red-400 font-bold uppercase tracking-wide">Oferta 72h</span>
+                                                </div>
+                                            )}
 
                                             <h3 className="text-xl font-bold text-white mb-2">{product.name}</h3>
                                             <p className="text-gray-400 text-sm mb-6 min-h-[60px]">{product.description.substring(0, 120)}...</p>
                                             <div className="mt-auto space-y-3">
                                                 <div className="flex flex-col gap-1">
-                                                    <div className="flex items-baseline gap-2">
-                                                        <span className="text-2xl font-bold text-white">€0</span>
-                                                        <span className="text-xs text-brand-neon font-bold ml-2">7 días GRATIS</span>
-                                                    </div>
-                                                    <div className="text-xs text-gray-400 font-medium">
-                                                        Luego <span className="text-white font-bold">{product.price}</span>
-                                                    </div>
+                                                    {!hasTried ? (
+                                                        <>
+                                                            <div className="flex items-baseline gap-2">
+                                                                <span className="text-2xl font-bold text-white">€0</span>
+                                                                <span className="text-xs text-brand-neon font-bold ml-2">7 días GRATIS</span>
+                                                            </div>
+                                                            <div className="text-xs text-gray-400 font-medium">
+                                                                Luego <span className="text-white font-bold">{product.price}</span>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="flex items-baseline gap-2">
+                                                            <span className="text-2xl font-bold text-white">{product.price}</span>
+                                                            <span className="text-xs text-gray-400 font-bold ml-2">/ mes</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-2 pt-2">
                                                     {isOwned ? (
@@ -842,7 +862,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                                             onClick={() => handleProductClick(product)}
                                                             className="px-4 py-2 bg-brand-accent text-white rounded-lg text-sm font-bold hover:bg-brand-accent/90 transition-colors flex items-center justify-center shadow-lg shadow-brand-accent/20"
                                                         >
-                                                            <Gift className="w-4 h-4 mr-2" /> Probar Gratis
+                                                            <Gift className="w-4 h-4 mr-2" /> {hasTried ? 'Ver Planes' : 'Probar Gratis'}
                                                         </button>
                                                     )}
                                                 </div>

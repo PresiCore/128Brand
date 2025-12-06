@@ -13,8 +13,8 @@ const firebaseConfig = {
   measurementId: "G-YD20MNX3CC"
 };
 
-// Initialize Firebase
-const app = firebaseApp.initializeApp(firebaseConfig);
+// Initialize Firebase (Singleton pattern to prevent re-initialization)
+const app = firebaseApp.getApps().length === 0 ? firebaseApp.initializeApp(firebaseConfig) : firebaseApp.getApp();
 
 export const db = getFirestore(app);
 export const auth = getAuth(app);
