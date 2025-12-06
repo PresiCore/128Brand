@@ -438,7 +438,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             // ADMIN LOGIC: Redirect directly to external platform
             if (isAdminDemo) {
                 const token = ownedProduct.token || 'admin_token';
-                const url = ownedProduct.serviceUrl || "https://service-128brand-ai-chatbot-saas-785237534052.us-west1.run.app";
+                const url = ownedProduct.serviceUrl || "https://service-128brand-ai-chatbot-saas.web.app";
                 window.open(`${url}?token=${token}`, '_blank');
                 return;
             }
@@ -541,12 +541,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 console.error("Warning: Error guardando backup local (no crítico)", e);
             }
 
-            // --- REGISTRO DE PRUEBA EN PERFIL USUARIO ---
+            // --- REGISTRO DE PRUEBA EN PERFIL USUARIO (CORREGIDO) ---
             try {
                 const userRef = doc(db, "users", userId);
-                await updateDoc(userRef, {
-                    triedProducts: arrayUnion(selectedProduct.id)
-                });
+                // Usamos setDoc con merge: true para CREAR el documento si no existe (vital para logins de Google)
+                await setDoc(userRef, {
+                    uid: userId,           // Aseguramos que el ID esté
+                    email: userEmail,      // Guardamos el email
+                    role: 'client',        // Rol por defecto
+                    triedProducts: arrayUnion(selectedProduct.id) // Añadimos el producto a la lista negra
+                }, { merge: true });
             } catch (e) {
                 console.error("No se pudo guardar el historial de prueba", e);
             }
