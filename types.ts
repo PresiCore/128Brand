@@ -1,21 +1,99 @@
 
+export enum AppView {
+  AUTH = 'AUTH',
+  DASHBOARD = 'DASHBOARD',
+}
+
 export enum ViewState {
   HOME = 'HOME',
-  SERVICES = 'SERVICES',
-  AI_DEMO = 'AI_DEMO',
-  CONTACT = 'CONTACT',
   LOGIN = 'LOGIN',
   DASHBOARD = 'DASHBOARD',
+  AI_DEMO = 'AI_DEMO',
   PRIVACY = 'PRIVACY',
-  TERMS = 'TERMS'
+  TERMS = 'TERMS',
+}
+
+export enum ContextType {
+  TEXT = 'TEXT',
+  URL = 'URL',
+  FILE = 'FILE',
+}
+
+export type Language = 'es' | 'en';
+export type Theme = 'light' | 'dark';
+
+export interface ContextItem {
+  id: string;
+  type: ContextType;
+  content: string; // Text content or URL
+  fileName?: string;
+  fileData?: string; // Base64 for files
+  mimeType?: string;
+}
+
+export interface SiteCategory {
+  name: string;
+  url: string;
+  description?: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  price?: string; // Optional for generic navigation cards
+  description: string;
+  imageUrl?: string;
+  buyUrl?: string;
+  type?: 'PRODUCT' | 'SERVICE' | 'LINK';
+  tags?: string[]; // New: keywords for internal search
+}
+
+export interface Source {
+  title: string;
+  uri: string;
+}
+
+export interface ContactInfo {
+  sales?: string;
+  support?: string;
+  technical?: string;
+}
+
+export interface AnalysisResult {
+  agentName?: string; // Customizable bot name
+  systemInstruction: string;
+  summary: string;
+  suggestedGreeting: string;
+  keyTopics: string[];
+  products: Product[]; // List of specific products
+  navigationTree?: SiteCategory[]; // New: List of detected main categories/pages
+  brandColor?: string; // Hex code for brand branding
+  sources?: Source[]; // Structured list of detected sources
+  websiteUrl?: string; // Main website URL detected
+  contactInfo?: ContactInfo; // New: Contact channels
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+  productCards?: Product[]; // Products to display in a carousel/grid
 }
 
 export interface Message {
   role: 'user' | 'model';
   text: string;
   timestamp: Date;
-  productRecommendation?: string; // ID of the recommended product
+  productRecommendation?: string;
 }
+
+export interface UserSession {
+  token: string;
+  email: string;
+  isActive: boolean; // Simulates payment status
+  role?: 'admin' | 'user';
+}
+
+// --- TIPOS NUEVOS (Fusionados) ---
 
 export interface ServiceItem {
   title: string;
@@ -23,12 +101,6 @@ export interface ServiceItem {
   icon: 'brain' | 'cpu' | 'message' | 'barChart';
 }
 
-export interface ChatState {
-  messages: Message[];
-  isLoading: boolean;
-}
-
-// SaaS Specific Types
 export interface SaasProduct {
   id: string;
   name: string;
@@ -36,16 +108,10 @@ export interface SaasProduct {
   price: string;
   category: 'Automation' | 'Chatbot' | 'Data';
   status: 'available' | 'deploying' | 'active' | 'paused';
-  iconName: 'Bot' | 'FileText' | 'Workflow' | 'Database'; // String for DB storage
-  demoId?: 'sdr' | 'invoice' | 'social' | 'legal'; // ID for the interactive component
-  token?: string; // New: License Token
-  trialEndsAt?: string; // New: Expiration date for trial
-  serviceUrl?: string; // New: External service URL
-}
-
-export interface UserProfile {
-  name: string;
-  company: string;
-  email: string;
-  activeServices: SaasProduct[];
+  iconName: 'Bot' | 'FileText' | 'Workflow' | 'Database';
+  demoId?: 'sdr' | 'invoice' | 'social' | 'legal';
+  token?: string;
+  trialEndsAt?: string;
+  serviceUrl?: string;
+  deployedAt?: string;
 }

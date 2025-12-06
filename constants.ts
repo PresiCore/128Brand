@@ -38,11 +38,7 @@ export const SAAS_PRODUCTS: SaasProduct[] = [
     status: 'available',
     iconName: 'Bot',
     demoId: 'sdr',
-    // CAMBIO AQUÍ: Usa tu URL actual o una de prueba por ahora
-    // Si estás en local, puedes poner "http://localhost:3000" para probar que abre.
-    // O si quieres simular que funciona, pon la misma URL de tu app desplegada.
-    serviceUrl: "https://brand-176eb.web.app" 
-    // serviceUrl: "https://agentecomercial128.web.app"  <-- ESTA ES LA QUE FALLA PORQUE NO ESTÁ DESPLEGADA
+    serviceUrl: "https://brand-ai-chatbot-saas.web.app"
   }
 ];
 
