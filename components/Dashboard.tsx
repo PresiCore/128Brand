@@ -221,7 +221,8 @@ interface ConfigPanelProps {
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChange, onDelete, onUpgrade, isPremium }) => {
     const [showKey, setShowKey] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    // showDeleteConfirm state removed
+
     const isActive = product.status === 'active';
     const token = product.token || `missing_token`;
     const targetUrl = product.serviceUrl 
@@ -310,19 +311,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
                             </button>
                         </div>
                     )}
-                    <div className="border-t border-white/5 pt-6 mt-6">
-                         {!showDeleteConfirm ? (
-                             <button onClick={() => setShowDeleteConfirm(true)} className="text-xs text-red-500 hover:text-red-400 font-bold flex items-center transition-colors opacity-60 hover:opacity-100"><Trash2 className="w-3 h-3 mr-1" /> Eliminar Servicio y Revocar Licencia</button>
-                         ) : (
-                             <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 flex items-center justify-between animate-fade-in-up">
-                                 <div className="text-xs text-red-300"><span className="font-bold">¿Estás seguro?</span> Esta acción es irreversible.</div>
-                                 <div className="flex gap-2">
-                                     <button onClick={() => setShowDeleteConfirm(false)} className="px-3 py-1 bg-white/5 rounded text-xs hover:bg-white/10">Cancelar</button>
-                                     <button onClick={onDelete} className="px-3 py-1 bg-red-500 text-white rounded text-xs font-bold hover:bg-red-600">Sí, Eliminar</button>
-                                 </div>
-                             </div>
-                         )}
-                     </div>
                 </div>
             </div>
         </div>
