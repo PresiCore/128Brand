@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
     LayoutDashboard, ShoppingBag, LogOut, CheckCircle2, 
@@ -28,15 +27,14 @@ interface OfferPageProps {
     onActivateTrial: () => void;
     onClose: () => void;
     isProvisioning: boolean;
-    userCreationTime?: string; // Nuevo prop para la fecha
+    userCreationTime?: string;
 }
 
 const OfferPage: React.FC<OfferPageProps> = ({ product, onActivateTrial, onClose, isProvisioning, userCreationTime }) => {
-    // Lógica del Temporizador Real (Basado en creación de cuenta)
     const calculateTimeLeft = () => {
         if (!userCreationTime) return 0;
         const created = new Date(userCreationTime).getTime();
-        const expires = created + (72 * 60 * 60 * 1000); // +72 horas
+        const expires = created + (72 * 60 * 60 * 1000); 
         const now = Date.now();
         const diff = Math.floor((expires - now) / 1000);
         return diff > 0 ? diff : 0;
@@ -100,7 +98,6 @@ const OfferPage: React.FC<OfferPageProps> = ({ product, onActivateTrial, onClose
             </div>
 
             <div className="max-w-6xl mx-auto px-6 py-12">
-                
                 {isProvisioning ? (
                     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8 animate-fade-in-up">
                         <div className="relative">
@@ -108,9 +105,7 @@ const OfferPage: React.FC<OfferPageProps> = ({ product, onActivateTrial, onClose
                             <Server className="w-20 h-20 text-brand-accent animate-bounce relative z-10" />
                         </div>
                         <h2 className="text-3xl font-bold text-white">Configurando tu Instancia Privada...</h2>
-                        
                         <div className="w-full max-w-md space-y-4">
-                            {/* Steps UI remains same */}
                             <div className={`flex items-center gap-4 p-4 rounded-xl border transition-all duration-500 ${provisionStep >= 1 ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/10'}`}>
                                 {provisionStep >= 1 ? <CheckCircle2 className="w-6 h-6 text-green-500" /> : <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-brand-accent animate-spin" />}
                                 <span className={provisionStep >= 1 ? 'text-white' : 'text-gray-500'}>Generando Token de Licencia Único</span>
@@ -139,8 +134,6 @@ const OfferPage: React.FC<OfferPageProps> = ({ product, onActivateTrial, onClose
                             <p className="text-xl text-gray-400 mb-8 leading-relaxed">
                                 {product.description}
                             </p>
-                            
-                            {/* Precios: Cambian si expiró la oferta */}
                             <div className="flex items-center gap-6 mb-10">
                                 <div className="flex flex-col">
                                     {!isOfferExpired ? (
@@ -160,7 +153,6 @@ const OfferPage: React.FC<OfferPageProps> = ({ product, onActivateTrial, onClose
                                     <CheckCircle2 className="w-4 h-4 mr-2" /> Sin compromiso
                                 </div>
                             </div>
-
                             <div className="flex flex-col gap-4">
                                 {!isOfferExpired ? (
                                     <>
@@ -181,8 +173,6 @@ const OfferPage: React.FC<OfferPageProps> = ({ product, onActivateTrial, onClose
                                 )}
                             </div>
                         </div>
-
-                        {/* Visual Mockup */}
                         <div className="relative">
                             <div className="absolute inset-0 bg-gradient-to-tr from-brand-accent/20 to-purple-600/20 rounded-3xl blur-3xl animate-pulse-slow"></div>
                             <div className="relative bg-[#0f0c29] border border-white/10 rounded-3xl p-8 shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-700">
@@ -220,7 +210,6 @@ const OfferPage: React.FC<OfferPageProps> = ({ product, onActivateTrial, onClose
 };
 
 // --- COMPONENT: CONFIGURATION PANEL ---
-// (No changes needed here, keeping it same as your latest version)
 interface ConfigPanelProps {
     product: SaasProduct;
     userId: string;
@@ -240,7 +229,16 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
         : `https://service-128brand-ai-chatbot-saas-785237534052.us-west1.run.app?token=${token}`; 
 
     const handleOpenPlatform = () => window.open(targetUrl, '_blank');
-    const handleToggleStatus = () => onStatusChange(isActive ? 'paused' : 'active');
+
+    // --- CAMBIO 1: "Reanudar" lleva al PAGO, no reactiva gratis ---
+    const handleToggleStatus = () => {
+        if (isActive) {
+            onStatusChange('paused');
+        } else {
+            // Si está pausado (o caducado/inactivo) -> Llevamos a pagar
+            onUpgrade();
+        }
+    };
 
     return (
         <div className="flex flex-col items-center justify-start min-h-full p-8 text-center space-y-10 animate-fade-in-up pb-20">
@@ -273,7 +271,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
                 </button>
             </div>
             
-            {/* Status Panel */}
             <div className="w-full max-w-2xl bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden">
                 <div className="bg-[#121212] p-4 border-b border-white/5 flex items-center justify-between">
                     <div className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-brand-neon" /><span className="font-bold text-white">Estado de Licencia</span></div>
@@ -292,8 +289,16 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
                         </div>
                     </div>
                     <div className="border-t border-white/5 pt-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-bold text-gray-300 flex items-center gap-2">
+                                <Activity className="w-4 h-4 text-blue-400" /> Control Remoto de Servicio
+                            </span>
+                        </div>
+                         <p className="text-xs text-gray-500 mb-4">
+                            Esta acción actualiza la base de datos maestra de 128 Brand.
+                        </p>
                         <div className="flex gap-4">
-                            <button onClick={handleToggleStatus} className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold flex items-center justify-center transition-all ${isActive ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'}`}>
+                            <button onClick={handleToggleStatus} type="button" className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold flex items-center justify-center transition-all ${isActive ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'}`}>
                                 {isActive ? <><Power className="w-4 h-4 mr-2" /> Pausar Servicio</> : <><RefreshCw className="w-4 h-4 mr-2" /> Reanudar Servicio</>}
                             </button>
                         </div>
@@ -350,7 +355,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     const [triedProductIds, setTriedProductIds] = useState<string[]>([]);
     const [isOffline, setIsOffline] = useState(true);
 
-    // Calcular si la oferta global de 72h sigue vigente para este usuario
     const isAccountOfferExpired = () => {
         if (!user?.metadata?.creationTime) return false;
         const created = new Date(user.metadata.creationTime).getTime();
@@ -398,7 +402,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         fetchTriedProducts();
     }, [user, userId, isAdminDemo, isClientDemo]);
 
-    // LÓGICA DE NAVEGACIÓN PRINCIPAL
     const handleProductClick = (product: SaasProduct) => {
         const ownedProduct = myServices.find(s => s.id === product.id);
         
@@ -412,12 +415,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             setSelectedProduct(ownedProduct);
             setViewMode('manage');
         } else {
-            // SI YA HA PROBADO EL PRODUCTO -> IR A PAGO (UPGRADE)
             if (triedProductIds.includes(product.id)) {
                 setSelectedProduct(product);
-                setViewMode('upgrade'); // Redirige directamente al pago
+                setViewMode('upgrade'); 
             } else {
-                // SI ES NUEVO -> IR A OFERTA (Aunque haya expirado el tiempo, la OfferPage maneja el mensaje de expiración)
                 setSelectedProduct(product);
                 setViewMode('offer');
             }
@@ -427,7 +428,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     const activateTrial = async () => {
         if (!selectedProduct) return;
         
-        // Bloqueo de seguridad adicional por si acaso
         if (isAccountOfferExpired()) {
             alert("La oferta de prueba gratuita ha expirado para tu cuenta.");
             return;
@@ -497,23 +497,39 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     };
 
     const handleServiceStatusChange = async (status: 'active' | 'paused') => {
-        if (!selectedProduct || !selectedProduct.token) return;
+        if (!selectedProduct) return;
+        
+        if (!selectedProduct.token) {
+            alert("Error crítico: La licencia local está corrupta. Por favor, elimina el servicio y vuelve a crearlo.");
+            return;
+        }
+        
         const updatedService = { ...selectedProduct, status };
         const updatedServices = myServices.map(s => s.id === selectedProduct.id ? updatedService : s);
         setMyServices(updatedServices);
         setSelectedProduct(updatedService);
         localStorage.setItem(`services_${userId}`, JSON.stringify(updatedServices));
-        try { await updateDoc(doc(db, "licenses", selectedProduct.token), { status: status }); } catch (e) { console.error("Error updating license in DB", e); }
+        
+        try { 
+            await updateDoc(doc(db, "licenses", selectedProduct.token), { status: status }); 
+        } catch (e: any) { 
+            console.error("Error updating license in DB", e);
+            alert(`Aviso: El estado cambió localmente pero hubo un error de red: ${e.message}`);
+        }
     };
 
+    // --- CAMBIO 2: Eliminar servicio -> Llevar al panel principal ---
     const handleDeleteService = async () => {
         if (!selectedProduct || !selectedProduct.token) return;
         const updatedServices = myServices.filter(s => s.id !== selectedProduct.id);
         setMyServices(updatedServices);
         localStorage.setItem(`services_${userId}`, JSON.stringify(updatedServices));
         try { await deleteDoc(doc(db, "licenses", selectedProduct.token)); } catch (e) { console.error("Error deleting license from DB", e); }
+        
+        // RESETEAR ESTADO PARA VOLVER A LA LISTA
         setViewMode('dashboard');
         setSelectedProduct(null);
+        setActiveTab('overview'); // Asegurarnos de ir a la pestaña principal
     };
 
     return (
