@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
     LayoutDashboard, ShoppingBag, LogOut, CheckCircle2, 
@@ -221,7 +222,7 @@ interface ConfigPanelProps {
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChange, onDelete, onUpgrade, isPremium }) => {
     const [showKey, setShowKey] = useState(false);
-    // showDeleteConfirm state removed
+    const [copied, setCopied] = useState(false); 
 
     const isActive = product.status === 'active';
     const token = product.token || `missing_token`;
@@ -231,7 +232,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
 
     const handleOpenPlatform = () => window.open(targetUrl, '_blank');
 
-    // --- CAMBIO 1: "Reanudar" lleva al PAGO, no reactiva gratis ---
     const handleToggleStatus = () => {
         if (isActive) {
             onStatusChange('paused');
@@ -239,6 +239,13 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
             // Si está pausado (o caducado/inactivo) -> Llevamos a pagar
             onUpgrade();
         }
+    };
+
+    const handleCopyToken = () => {
+        navigator.clipboard.writeText(token).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }).catch(err => console.error("Error al copiar:", err));
     };
 
     return (
@@ -285,8 +292,16 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
                         <label className="text-xs text-gray-500 uppercase font-bold mb-2 block flex items-center gap-2"><Key className="w-4 h-4 text-brand-neon" /> Token de Activación</label>
                         <div className="flex items-center gap-3 bg-black border border-white/10 p-4 rounded-lg group hover:border-brand-accent/30 transition-colors">
                             <code className="text-brand-accent text-sm font-mono flex-1 break-all">{showKey ? token : '••••••••••••••••••••••••••••••••••••••••'}</code>
-                            <button onClick={() => setShowKey(!showKey)} className="text-gray-500 hover:text-white p-2 rounded hover:bg-white/5 transition-colors">{showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
-                            <button onClick={() => navigator.clipboard.writeText(token)} className="text-gray-500 hover:text-white p-2 rounded hover:bg-white/5 transition-colors"><Copy className="w-4 h-4" /></button>
+                            <button onClick={() => setShowKey(!showKey)} className="text-gray-500 hover:text-white p-2 rounded hover:bg-white/5 transition-colors" title={showKey ? "Ocultar" : "Mostrar"}>
+                                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <button 
+                                onClick={handleCopyToken} 
+                                className={`p-2 rounded transition-colors ${copied ? 'text-green-500 bg-green-500/10' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                                title="Copiar Token"
+                            >
+                                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            </button>
                         </div>
                     </div>
                     <div className="border-t border-white/5 pt-6">
@@ -443,13 +458,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             }
 
             const mockToken = `128-${userId.substring(0, 5)}-${Date.now().toString(36)}`;
-            try {
-                await fetch(SAAS_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AGENCY_SECRET_KEY}` },
-                    body: JSON.stringify({ token: mockToken, email: userEmail, plan: 'trial_7_days', expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() })
-                });
-            } catch (fetchError) { console.warn("Provisioning locally."); }
+
+            const apiResponse = await fetch(SAAS_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AGENCY_SECRET_KEY}` },
+                body: JSON.stringify({ 
+                    token: mockToken, 
+                    email: userEmail, 
+                    plan: 'trial_7_days', 
+                    expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() 
+                })
+            });
+
+            if (!apiResponse.ok) {
+                throw new Error("El servidor de licencias externo rechazó la activación. Inténtalo más tarde.");
+            }
     
             const newService = { ...selectedProduct, status: 'active', deployedAt: new Date().toISOString(), token: mockToken, trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() } as SaasProduct;
             const updatedServices = [...myServices, newService];
@@ -465,9 +488,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             setSelectedProduct(newService);
             setViewMode('manage');
         } catch (error: any) {
-            console.error("❌ TRANSACTION ERROR:", error);
+            console.error("❌ ERROR CRÍTICO DE APROVISIONAMIENTO:", error);
             setIsProvisioning(false);
-            alert(`No se pudo activar la licencia: ${error.message || 'Error de conexión'}`);
+            alert(`No se pudo activar la licencia remota: ${error.message || 'Error de conexión con el servidor externo.'}`);
         }
     };
 
