@@ -241,11 +241,14 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
         }
     };
 
-    const handleCopyToken = () => {
-        navigator.clipboard.writeText(token).then(() => {
+    const handleCopyToken = async () => {
+        try {
+            await navigator.clipboard.writeText(token);
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        }).catch(err => console.error("Error al copiar:", err));
+            setTimeout(() => setCopied(false), 2000); 
+        } catch (err) {
+            console.error("Fallo al copiar:", err);
+        }
     };
 
     return (
@@ -295,9 +298,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
                             <button onClick={() => setShowKey(!showKey)} className="text-gray-500 hover:text-white p-2 rounded hover:bg-white/5 transition-colors" title={showKey ? "Ocultar" : "Mostrar"}>
                                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
+                            
                             <button 
                                 onClick={handleCopyToken} 
-                                className={`p-2 rounded transition-colors ${copied ? 'text-green-500 bg-green-500/10' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                                className={`p-2 rounded transition-colors ${copied ? 'text-green-400 bg-green-400/10' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
                                 title="Copiar Token"
                             >
                                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -471,7 +475,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             });
 
             if (!apiResponse.ok) {
-                throw new Error("El servidor de licencias externo rechazó la activación. Inténtalo más tarde.");
+                throw new Error(`Error del servidor externo: ${apiResponse.status}`);
             }
     
             const newService = { ...selectedProduct, status: 'active', deployedAt: new Date().toISOString(), token: mockToken, trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() } as SaasProduct;
@@ -490,7 +494,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         } catch (error: any) {
             console.error("❌ ERROR CRÍTICO DE APROVISIONAMIENTO:", error);
             setIsProvisioning(false);
-            alert(`No se pudo activar la licencia remota: ${error.message || 'Error de conexión con el servidor externo.'}`);
+            alert(`⚠️ No se pudo conectar con el servidor de licencias. \n\nMotivo: ${error.message || 'Error de red'}.\n\nIntenta de nuevo en unos minutos.`);
         }
     };
 
