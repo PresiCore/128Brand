@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
     LayoutDashboard, ShoppingBag, LogOut, CheckCircle2, 
@@ -10,17 +9,15 @@ import {
     Star
 } from 'lucide-react';
 import { SaasProduct } from '../types';
-import { db } from '../services/firebase';
+import { db, functions } from '../services/firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc, arrayUnion } from "firebase/firestore";
+import { httpsCallable } from 'firebase/functions';
 import { SAAS_PRODUCTS } from '../constants';
 import { PaymentGateway } from './PaymentGateway';
 
 const IconMap: Record<string, React.ElementType> = {
     Bot, FileText, Workflow, Database
 };
-
-const SAAS_API_URL = "https://us-central1-brand-ai-chatbot-saas.cloudfunctions.net/activateClientToken";
-const AGENCY_SECRET_KEY = "128BRAND_SECRET_KEY_2024";
 
 // --- COMPONENT: OFFER PAGE ---
 interface OfferPageProps {
@@ -466,25 +463,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
             const mockToken = `128-${userId.substring(0, 5)}-${Date.now().toString(36)}`;
 
-            // --- LLAMADA API CRÍTICA CORREGIDA ---
-            // Si la API falla (por ejemplo, CORS o error 500), lanzamos error y vamos al CATCH.
-            // Esto evita que se cree el token falso.
-            const apiResponse = await fetch(SAAS_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AGENCY_SECRET_KEY}` },
-                body: JSON.stringify({ 
-                    token: mockToken, 
-                    email: userEmail, 
-                    plan: 'trial_7_days', 
-                    expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() 
-                })
+            // --- CÓDIGO ACTUALIZADO: USANDO PROXY ---
+            // Llamamos a nuestra función interna 'activateService' en lugar de la URL externa
+            // para evitar problemas de CORS.
+            const activateServiceFn = httpsCallable(functions, 'activateService');
+            
+            await activateServiceFn({ 
+                token: mockToken, 
+                email: userEmail, 
+                plan: 'trial_7_days', 
+                expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() 
             });
-
-            if (!apiResponse.ok) {
-                // Forzamos el error para que salte al bloque catch de abajo
-                throw new Error(`Error del servidor externo (${apiResponse.status}). Posible bloqueo CORS.`);
-            }
-            // -------------------------------------
     
             const newService = { ...selectedProduct, status: 'active', deployedAt: new Date().toISOString(), token: mockToken, trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() } as SaasProduct;
             const updatedServices = [...myServices, newService];
@@ -504,7 +493,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             console.error("❌ ERROR CRÍTICO DE APROVISIONAMIENTO:", error);
             setIsProvisioning(false);
             // Mensaje informativo real para el usuario
-            alert(`⚠️ No se pudo conectar con el servidor de licencias.\n\nEl servidor externo está bloqueando la conexión (Error CORS o Red).\n\nMotivo técnico: ${error.message}`);
+            alert(`⚠️ No se pudo conectar con el servidor de licencias.\n\nMotivo técnico: ${error.message}`);
         }
     };
 
