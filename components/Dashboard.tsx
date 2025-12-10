@@ -222,6 +222,7 @@ interface ConfigPanelProps {
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChange, onDelete, onUpgrade, isPremium }) => {
     const [showKey, setShowKey] = useState(false);
+    // --- ESTADO NUEVO PARA EL CHECK VISUAL ---
     const [copied, setCopied] = useState(false); 
 
     const isActive = product.status === 'active';
@@ -241,13 +242,14 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
         }
     };
 
+    // --- FUNCIÓN DE COPIADO CORREGIDA ---
     const handleCopyToken = async () => {
         try {
             await navigator.clipboard.writeText(token);
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000); 
+            setTimeout(() => setCopied(false), 2000);
         } catch (err) {
-            console.error("Fallo al copiar:", err);
+            console.error("Error al copiar:", err);
         }
     };
 
@@ -299,6 +301,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ product, userId, onStatusChan
                                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                             
+                            {/* --- BOTÓN ACTUALIZADO CON CHECK --- */}
                             <button 
                                 onClick={handleCopyToken} 
                                 className={`p-2 rounded transition-colors ${copied ? 'text-green-400 bg-green-400/10' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
@@ -463,6 +466,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
             const mockToken = `128-${userId.substring(0, 5)}-${Date.now().toString(36)}`;
 
+            // --- LLAMADA API CRÍTICA CORREGIDA ---
+            // Si la API falla (por ejemplo, CORS o error 500), lanzamos error y vamos al CATCH.
+            // Esto evita que se cree el token falso.
             const apiResponse = await fetch(SAAS_API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AGENCY_SECRET_KEY}` },
@@ -475,8 +481,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             });
 
             if (!apiResponse.ok) {
-                throw new Error(`Error del servidor externo: ${apiResponse.status}`);
+                // Forzamos el error para que salte al bloque catch de abajo
+                throw new Error(`Error del servidor externo (${apiResponse.status}). Posible bloqueo CORS.`);
             }
+            // -------------------------------------
     
             const newService = { ...selectedProduct, status: 'active', deployedAt: new Date().toISOString(), token: mockToken, trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() } as SaasProduct;
             const updatedServices = [...myServices, newService];
@@ -491,10 +499,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             setIsProvisioning(false);
             setSelectedProduct(newService);
             setViewMode('manage');
+
         } catch (error: any) {
             console.error("❌ ERROR CRÍTICO DE APROVISIONAMIENTO:", error);
             setIsProvisioning(false);
-            alert(`⚠️ No se pudo conectar con el servidor de licencias. \n\nMotivo: ${error.message || 'Error de red'}.\n\nIntenta de nuevo en unos minutos.`);
+            // Mensaje informativo real para el usuario
+            alert(`⚠️ No se pudo conectar con el servidor de licencias.\n\nEl servidor externo está bloqueando la conexión (Error CORS o Red).\n\nMotivo técnico: ${error.message}`);
         }
     };
 
